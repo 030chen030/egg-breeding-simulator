@@ -1,0 +1,2937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cellipse cx='16' cy='18.5' rx='6.6' ry='8' fill='%23fff'/%3E%3Ccircle cx='13.6' cy='16' r='1.5' fill='%234f46e5'/%3E%3C/svg%3E">
+<title>洛克王国世界 · 孵蛋模拟器</title>
+<style>
+  :root{
+    /* ---- 主题：中性石墨 · 靛蓝重点（v10）----
+       设计原则：基底一律中性（背景 / 描边 / 阴影 / 滚动条全部去彩），
+       全站只留一个重点色 --accent（靛蓝）用于主交互与关键信息标注，
+       另设 --hl（琥珀）专供"重点数据高亮"，绿 / 红 / 黄只作语义状态。
+       兼容说明：--rose* 系列变量名沿用旧名（既有规则直接引用），
+       但其含义已由"粉色主色"改为"主重点色"，故下游 var(--rose) 自动变靛蓝。 */
+    --bg:#f6f7f9;
+    --panel:#ffffff;
+    --line:#e6e8ee;
+    --line-strong:#d5d9e2;
+    --ink:#1a1e28;
+    --ink-2:#4b5262;
+    --ink-3:#858c9b;
+    --rose:#4f46e5;          /* 主重点色：靛蓝 */
+    --rose-deep:#3f36cc;
+    --rose-soft:#eef0fe;
+    --accent:#4f46e5;
+    --accent-deep:#3f36cc;
+    --accent-soft:#eef0fe;
+    --accent-line:#c9cdfb;
+    --hl:#e2820c;            /* 关键信息标注色：琥珀 */
+    --hl-deep:#b4650a;
+    --hl-soft:#fff5e5;
+    --violet:#6d5ce7;
+    --violet-soft:#efedfe;
+    --mint:#12a97f;
+    --mint-deep:#0b8a67;
+    --sun:#dd9a10;
+    --sun-deep:#a8720b;
+    --sky:#3b82f6;
+    --ok:#15803d;
+    --ok-soft:#e9f7ef;
+    --bad:#dc2626;
+    --bad-soft:#fdeceb;
+    --warn:#a9610a;
+    --warn-soft:#fdf4e4;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 24px -14px rgba(16,24,40,.18);
+    --radius:14px;
+    --radius-sm:10px;
+    --ease:cubic-bezier(.32,.72,0,1);   /* 中性顺滑，去掉回弹感 */
+    --cell:78px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  /* 禁用 Android WebView/Chrome 的字体自动放大（font boosting / text autosizing）。
+     该机制会把行内小字按比例放大但不重算 nowrap+ellipsis 容器的绘制位置，
+     导致文本被画到错误偏移上、相互重叠（手机端“字体重叠”的根因）。 */
+  html{
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+  }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  /* 背景渐变放在 fixed 合成层上：页面滚动时这层不参与重绘，
+     避免手机端每次滑动都要重画整屏径向渐变（滚动卡顿的主因之一）。
+     v10：改为极低饱和的冷调光斑（靛蓝 / 天蓝 / 青），只做极轻的空间层次，
+     不再给整站上色 —— 视觉重心交给卡片本身与重点色。 */
+  body::before{
+    content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(920px 470px at 5% -8%, rgba(79,70,229,.055) 0%, rgba(79,70,229,0) 62%),
+      radial-gradient(780px 430px at 100% -6%, rgba(59,130,246,.045) 0%, rgba(59,130,246,0) 58%),
+      radial-gradient(700px 390px at 86% 4%, rgba(18,169,127,.035) 0%, rgba(18,169,127,0) 56%);
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:26px 22px 60px}
+
+  /* ---------- header ---------- */
+  .hero{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+  .hero h1{margin:0;font-size:25px;letter-spacing:-.4px;font-weight:700;display:flex;align-items:center;gap:10px}
+  .hero h1 .egg{
+    width:34px;height:34px;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;
+    background:linear-gradient(160deg,#e8e9f6,#c9ccf2 45%,#6b62e0);
+    box-shadow:inset -4px -6px 12px rgba(60,55,150,.18), 0 4px 12px -3px rgba(79,70,229,.34);
+    display:inline-block;
+  }
+  .hero p{margin:8px 0 0;color:var(--ink-3);font-size:13px;line-height:1.7;max-width:760px}
+  .hero p code{background:#eceef5;padding:1px 6px;border-radius:5px;font-size:12px;color:var(--ink-2)}
+  .verdict{
+    border-radius:16px;padding:13px 20px;min-width:230px;text-align:right;
+    border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);
+  }
+  .verdict .vlabel{font-size:11px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+  .verdict .vtext{font-size:19px;font-weight:700;margin-top:4px}
+  .verdict .vsub{font-size:12px;color:var(--ink-3);margin-top:3px}
+  .verdict.ok{background:linear-gradient(140deg,#eafaf4,#ffffff 65%);border-color:#c6ecdf}
+  .verdict.ok .vtext{color:var(--ok)}
+  .verdict.bad{background:linear-gradient(140deg,#fdf0f1,#ffffff 65%);border-color:#f4cfd4}
+  .verdict.bad .vtext{color:var(--bad)}
+
+  /* ---------- stat strip ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;box-shadow:var(--shadow)}
+  .stat b{display:block;font-size:23px;font-weight:700;letter-spacing:-.5px;line-height:1.2}
+  .stat span{font-size:12px;color:var(--ink-3)}
+  .stat.hl b{color:var(--rose)}
+
+  /* ---------- layout ---------- */
+  .main{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:16px;align-items:start}
+  @media (max-width:1120px){.main{grid-template-columns:minmax(0,1fr)}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .card-h h2{margin:0;font-size:14px;font-weight:650;display:flex;align-items:center;gap:8px}
+  .card-h .tips{font-size:11.5px;color:var(--ink-3)}
+  .card-b{padding:16px}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:#fbfbfd;border-radius:var(--radius) var(--radius) 0 0}
+  .tgroup{display:flex;align-items:center;gap:6px;padding-right:10px;margin-right:2px;border-right:1px solid var(--line)}
+  .tgroup:last-child{border-right:0;padding-right:0}
+  .tgroup>label{font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+  .btn{
+    font:inherit;font-size:12.5px;padding:6px 11px;border-radius:9px;border:1px solid var(--line-strong);
+    background:#fff;color:var(--ink-2);cursor:pointer;transition:.14s;white-space:nowrap;
+  }
+  .btn:hover{border-color:#b9bfd0;color:var(--ink);transform:translateY(-1px)}
+  .btn.on{background:linear-gradient(140deg,#fdeaF2,#f6e9ff);border-color:#eab6cd;color:#a32a5c;font-weight:600}
+  .btn.primary{background:linear-gradient(140deg,var(--rose),#c4559f);border-color:transparent;color:#fff;font-weight:600}
+  .btn.primary:hover{box-shadow:0 6px 16px -6px rgba(200,70,140,.7)}
+  .btn.ghost{background:#fff;color:var(--ink-3)}
+  .btn.danger:hover{border-color:#eab0b6;color:var(--bad);background:#fff6f7}
+  .seg{display:flex;background:#eceef4;border-radius:9px;padding:2px}
+  .seg button{font:inherit;font-size:12px;border:0;background:transparent;padding:5px 10px;border-radius:7px;cursor:pointer;color:var(--ink-2)}
+  .seg button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(20,26,48,.13)}
+  select,input[type=text]{
+    font:inherit;font-size:12.5px;padding:6px 9px;border-radius:9px;border:1px solid var(--line-strong);
+    background:#fff;color:var(--ink-2);outline:none;max-width:100%;
+  }
+  select:focus,input[type=text]:focus{border-color:#d79ab7;box-shadow:0 0 0 3px rgba(232,97,140,.13)}
+
+  /* ---------- board ---------- */
+  .board-wrap{padding:18px;overflow:auto;background:
+     linear-gradient(#fff,#fff) padding-box,
+     repeating-conic-gradient(#f1f2f7 0% 25%, #fff 0% 50%) 0 0/16px 16px}
+  .board{position:relative;margin:0 auto;border-radius:12px}
+  .cells{position:absolute;inset:0;display:grid;border-radius:12px;overflow:hidden;border:1px solid var(--line);z-index:0}
+  .cellbox{background:#fcfcfe;border-right:1px solid #f0f1f6;border-bottom:1px solid #f0f1f6;cursor:crosshair;transition:background .12s}
+  .cellbox:hover{background:#fdf4f8}
+  .underlay{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:visible}
+  .overlay{position:absolute;inset:0;pointer-events:none;z-index:20;overflow:visible}
+  .nest{
+    position:absolute;border-radius:12px;border:1.5px dashed var(--line-strong);background:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;
+    cursor:grab;user-select:none;transition:box-shadow .15s,border-color .15s,background .15s;overflow:hidden;
+    padding:14px 3px 3px;touch-action:none;z-index:2;
+  }
+  .nest:hover{border-color:#c3a4b7}
+  .nest.empty{background:repeating-linear-gradient(135deg,#fafafd 0 6px,#f4f4f8 6px 12px)}
+  .nest.paired{border-style:solid;border-color:#f0aec8;background:linear-gradient(160deg,#fff6fa,#ffffff 70%);box-shadow:0 0 0 1px #f7cfdf inset,0 6px 18px -10px rgba(232,97,140,.45)}
+  .nest.sel{border-style:solid;border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,97,140,.16),0 8px 20px -10px rgba(200,70,140,.6);z-index:5}
+  .nest.dragging{opacity:.9;cursor:grabbing;z-index:30;box-shadow:0 16px 34px -14px rgba(30,36,60,.45)}
+  .nest .seq{position:absolute;top:3px;left:5px;font-size:9.5px;color:var(--ink-3);font-weight:600;letter-spacing:.02em}
+  .nest .sex{position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;border-radius:6px;padding:0 4px;line-height:15px}
+  .sex.M{background:#e8f0ff;color:#3a6ad0}
+  .sex.F{background:#ffe9f1;color:#cf3c74}
+  .nest .pic{width:31px;height:31px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;overflow:visible}
+  .nest .pic img{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 1.5px 2px rgba(30,36,60,.2));-webkit-user-drag:none}
+  .nest .pic i{width:26px;height:26px;border-radius:8px;display:block}
+  .nest .pname{font-size:10.5px;font-weight:650;text-align:center;line-height:1.2;max-width:100%;word-break:break-all;padding:0 1px}
+  .nest .pname.long{font-size:9.5px}
+  .nest .empty-in{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--ink-3);font-size:11px;line-height:1;margin:auto 0}
+  .nest .empty-in .plus{font-size:19px;line-height:1;color:#c2c7d6}
+  /* 空窝：不占用顶部为 #序号 预留的空间，整窝垂直居中（避免视觉偏低 / 小格子里被裁切） */
+  .nest.empty{padding-top:3px;justify-content:center}
+  .nest .gbar{display:flex;gap:2px;margin-top:0;flex-wrap:wrap;justify-content:center}
+  .nest .gdot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.05)}
+  .nest .spark{position:absolute;bottom:2px;right:3px;font-size:9px;line-height:1;color:#c99a12;text-shadow:0 0 3px #fff}
+  .nest .av{font-size:8.5px;border-radius:4px;padding:0 3px;background:#f0f1f6;color:var(--ink-3);line-height:13px}
+  /* 赛季奇遇角标：按赛季配色 */
+  .nest .av.enc{font-weight:650}
+  .nest .av.enc.s1{background:#eeeaff;color:#5b4bd6}
+  .nest .av.enc.s2{background:#fdeef3;color:#b3325f}
+  .nest .av.enc.s3{background:#e8f3ff;color:#1d6fb8}
+  .nest .av.enc.s4{background:#f3efff;color:#6d3fc0}
+  .nest .av.enc.s5{background:#fff2dc;color:#a35d12}
+  /* 通用精灵图标容器 */
+  .pic{display:flex;align-items:center;justify-content:center;flex:0 0 auto;overflow:hidden}
+  .pic img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none}
+  .pic i{width:100%;height:100%;display:block;border-radius:inherit}
+
+  .hint{margin:0;padding:11px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3);background:#fcfcfe;border-radius:0 0 var(--radius) var(--radius);display:flex;gap:14px;flex-wrap:wrap}
+  .hint b{color:var(--ink-2);font-weight:600}
+  kbd{background:#eef0f6;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:11px;font-family:inherit;color:var(--ink-2)}
+
+  /* ---------- nest list ---------- */
+  .nests{display:flex;flex-direction:column;gap:10px;padding:14px;max-height:640px;overflow:auto;-webkit-overflow-scrolling:touch}
+  .ncard{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;transition:.15s}
+  .ncard.sel{border-color:#eab6cd;box-shadow:0 0 0 3px rgba(232,97,140,.1);background:linear-gradient(140deg,#fffafd,#fff)}
+  .ncard-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .ncard-top .id{font-size:12.5px;font-weight:700}
+  .ncard-top .pos{font-size:11px;color:var(--ink-3);font-weight:400;margin-left:5px}
+  .ncard-top .acts{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+  /* 标签：不被同行按钮拉伸（默认 stretch 会把文字挤到框顶部，看着不居中） */
+  .ncard-top .acts .tag{white-space:nowrap;align-self:center;line-height:1.5}
+  .mini{font:inherit;font-size:11px;border:1px solid var(--line-strong);background:#fff;border-radius:7px;padding:3px 7px;cursor:pointer;color:var(--ink-3)}
+  .mini:hover{border-color:#d79ab7;color:var(--rose)}
+  .pickrow{display:flex;align-items:center;gap:8px}
+  .petchip{flex:1;min-width:0;display:flex;align-items:center;gap:8px;border:1px solid var(--line-strong);border-radius:10px;padding:7px 9px;cursor:pointer;background:#fff;transition:.14s}
+  .petchip:hover{border-color:#d79ab7;background:#fffafc}
+  .petchip .pic{width:34px;height:34px;border-radius:9px;flex:0 0 auto;background:#f7f8fc;box-shadow:inset 0 0 0 1px rgba(20,26,48,.05)}
+  .petchip .pic img{transform:scale(1.06)}
+  .petchip .txt{min-width:0;flex:1}
+  .petchip .txt b{display:block;font-size:12.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .petchip .txt small{font-size:10.5px;color:var(--ink-3);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .petchip .ph{color:var(--ink-3);font-size:12px}
+  .sexseg{display:flex;background:#eceef4;border-radius:8px;padding:2px;flex:0 0 auto}
+  .sexseg button{font:inherit;font-size:11.5px;border:0;background:transparent;padding:4px 8px;border-radius:6px;cursor:pointer;color:var(--ink-3)}
+  .sexseg button.on[data-s=M]{background:#fff;color:#3a6ad0;font-weight:700;box-shadow:0 1px 3px rgba(20,26,48,.12)}
+  .sexseg button.on[data-s=F]{background:#fff;color:#cf3c74;font-weight:700;box-shadow:0 1px 3px rgba(20,26,48,.12)}
+  .sexseg button:disabled{opacity:.35;cursor:not-allowed}
+  .tagsline{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:7px}
+  .gb{font-size:10px;padding:2px 7px;border-radius:999px;border:1px solid;background:#fff}
+  .tag{font-size:10px;padding:2px 7px;border-radius:999px;background:#f1f2f7;color:var(--ink-2)}
+  .tag.warn{background:var(--warn-soft);color:#96660a}
+  .tag.bad{background:var(--bad-soft);color:#b8333f}
+  .tag.ok{background:var(--ok-soft);color:#0b7a5c}
+  /* 赛季奇遇徽章：按赛季配色 + 形态角色 */
+  .tag.enc{background:#f3efff;color:#6d3fc0;font-weight:600}
+  .tag.enc.s1{background:#eeeaff;color:#5b4bd6}
+  .tag.enc.s2{background:#ffeef5;color:#c2185b}
+  .tag.enc.s3{background:#e8f3ff;color:#1d6fb8}
+  .tag.enc.s4{background:#f3efff;color:#6d3fc0}
+  .tag.enc.s5{background:#fff3e0;color:#9c5810}
+  .tag.enc .rl{font-weight:400;opacity:.72;margin-left:3px}
+  /* 赛季奇遇信息条 */
+  .seasonbox{margin-top:7px;padding:7px 9px;border-radius:8px;background:#fafaff;border:1px solid #ecebff;font-size:11px;line-height:1.65;color:var(--ink-2)}
+  .seasonbox b{color:#4a3ba8}
+  .seasonbox .kv{display:flex;gap:5px;align-items:flex-start}
+  .seasonbox .kv .k{flex:0 0 52px;color:var(--ink-3)}
+  .seasonbox .kv .v{flex:1;min-width:0}
+  .shinyflex{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11.5px;color:var(--ink-2);cursor:pointer}
+  .shinyflex input{accent-color:#d9a520}
+  /* 配对基准卡片 */
+  .ncard.base{border-color:#cbb9ff;background:linear-gradient(140deg,#faf8ff,#fff 65%);box-shadow:0 0 0 3px rgba(123,97,255,.08)}
+  .tag.base{background:#f1ecff;color:#5b4bd6;font-weight:650}
+  /* ---------- 选择器内的配对推荐 ---------- */
+  .filters.prefilter{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:7px 9px;border-radius:10px;background:linear-gradient(140deg,#faf8ff,#fff 70%);border:1px solid #ece8fb}
+  .ptag{font-size:11.5px;color:#4a3ba8;background:#f1ecff;border-radius:8px;padding:4px 9px;display:inline-flex;gap:4px;align-items:center;white-space:nowrap}
+  .ptag b{font-weight:650}
+  .ptag .pic{width:20px;height:20px;border-radius:6px;background:#fff;box-shadow:inset 0 0 0 1px rgba(20,26,48,.06)}
+  .ptip{font-size:11px;color:var(--ink-3);white-space:nowrap}
+  .tag.pairok{background:var(--ok-soft);color:#0b7a5c;font-weight:650}
+  /* 「默认精灵」标记：选择器按可生蛋规则动态选出的默认项 */
+  .tag.def{background:var(--accent-soft);color:var(--accent-deep);font-weight:650}
+  .pitem.isdefault{box-shadow:inset 0 0 0 1.5px var(--accent-line)}
+  /* 选择器空态：筛选兜底提示 + 一键放宽筛选 */
+  .pickempty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:9px;padding:26px 14px;text-align:center}
+  .pickempty .pe-tx{font-size:12.5px;color:var(--ink-2);line-height:1.75}
+  .pickempty .pe-tx b{color:var(--ink)}
+  .pitem.nopair{opacity:.52}
+  .pitem.nopair:hover{opacity:.9}
+  /* 画布小窝：与基准可配对的角标（★ 星标 = 推荐配对建议，与 ❤「判定可生蛋」区分开） */
+  .nest .stardot{position:absolute;bottom:2px;left:3px;font-size:9.5px;line-height:1;color:#b4650a;text-shadow:0 0 3px #fff}
+  /* 空窝的 ★ 角标：这里可以补入与参考基准配对的精灵（半透明态，区别于已放精灵的实心 ★） */
+  .nest .stardot.ghost{color:var(--hl-deep);opacity:.78;font-size:9px;animation:none}
+  /* 空窝「可补位」：淡靛蓝斜纹 + 靛蓝虚线，一眼区分「能补」与普通空窝
+     （用 .nest.empty.fillable 提高优先级，压过后面的 .nest.empty 主题覆盖） */
+  .nest.empty.fillable{border-color:var(--accent-line);background:repeating-linear-gradient(135deg,#fbfbff 0 6px,var(--accent-soft) 6px 12px)}
+  .nest.empty.fillable:hover{border-color:var(--accent)}
+  .nest .empty-in .on{color:var(--accent-deep);font-weight:650}
+  .nest .recdot{position:absolute;bottom:2px;left:3px;font-size:9px;line-height:1;color:#7b61ff;text-shadow:0 0 3px #fff}
+  /* 「一键补位」：把空窝自动补成可配对精灵（与 .mini 同族，用强调色区分） */
+  .card-h .minifill{font:inherit;font-size:11px;font-weight:600;line-height:1.4;border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-deep);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+  .card-h .minifill:hover{border-color:var(--accent)}
+  .card-h .minifill:active{transform:scale(.97)}
+  /* 面板顶部基准提示条 */
+  .basebar{display:flex;align-items:center;gap:7px;padding:8px 14px;border-bottom:1px solid var(--line);background:linear-gradient(140deg,#faf8ff,#fff);font-size:11.5px;color:var(--ink-2)}
+  .basebar .pic{width:22px;height:22px;border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px rgba(20,26,48,.06);flex:0 0 auto}
+  .basebar b{color:#4a3ba8}
+  .basebar .clr{margin-left:auto;font:inherit;font-size:10.5px;border:1px solid var(--line-strong);background:#fff;border-radius:7px;padding:2px 8px;cursor:pointer;color:var(--ink-3);white-space:nowrap;flex:0 0 auto}
+  .empty-state{padding:26px 16px;text-align:center;color:var(--ink-3);font-size:12.5px;line-height:1.8}
+
+  /* ---------- report ---------- */
+  .report{margin-top:16px}
+  .sec-title{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:15px;font-weight:700}
+  .sec-title .n{font-size:11px;font-weight:600;color:var(--ink-3);background:#eef0f6;border-radius:999px;padding:2px 9px}
+  .pairgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(392px,1fr));gap:12px}
+  .pair{border:1px solid var(--line);border-radius:13px;background:#fff;overflow:hidden}
+  .pair.ok{border-color:#bfe9db;background:linear-gradient(180deg,#f4fdfa,#fff 42%)}
+  .pair.bad{border-color:#f2d4d8;background:linear-gradient(180deg,#fef7f8,#fff 42%)}
+  .pair.pending{border-color:#e8dfc4;background:linear-gradient(180deg,#fffdf4,#fff 42%)}
+  .pair-h{display:flex;gap:10px;align-items:flex-start;padding:12px 14px 10px}
+  .pill{font-size:11px;font-weight:700;border-radius:8px;padding:3px 9px;flex:0 0 auto;letter-spacing:.02em}
+  .pill.ok{background:var(--ok-soft);color:#0b7a5c;border:1px solid #bfe9db}
+  .pill.bad{background:var(--bad-soft);color:#b8333f;border:1px solid #f2d4d8}
+  .pill.pending{background:var(--warn-soft);color:#96660a;border:1px solid #ecdcb4}
+  .pair-h .who{font-size:13px;font-weight:680;line-height:1.45;word-break:break-all}
+  .pair-h .who small{display:block;font-weight:400;color:var(--ink-3);font-size:11.5px;margin-top:2px}
+  .wholine{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+  .whoside{display:inline-flex;align-items:center;gap:5px;background:#f7f8fc;border:1px solid var(--line);border-radius:9px;padding:2px 8px 2px 3px}
+  .whoside .pic{width:24px;height:24px;border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px rgba(20,26,48,.05)}
+  .whoside .lb{color:var(--ink-3);font-size:11px;font-weight:600}
+  .whoside b{font-weight:680}
+  .whoside .sx{font-style:normal;font-weight:700;font-size:11.5px}
+  .whoside .sx.M{color:#3a6ad0}
+  .whoside .sx.F{color:#cf3c74}
+  .whox{color:var(--ink-3);font-size:11px;font-weight:400}
+  .ochip{display:inline-flex;align-items:center;gap:5px}
+  .ochip .pic{width:19px;height:19px;border-radius:5px}
+  .rules{list-style:none;margin:0;padding:0 14px 4px}
+  .rules li{display:flex;gap:8px;font-size:12px;line-height:1.55;padding:3px 0;color:var(--ink-2);align-items:flex-start}
+  .rules .mark{flex:0 0 15px;font-weight:800;font-size:11.5px;text-align:center;line-height:1.6}
+  .rules li.r-ok .mark{color:var(--ok)}
+  .rules li.r-no .mark{color:var(--bad)}
+  .rules li.r-no{color:#9d2b36}
+  .rules li .why{color:var(--ink-3);font-size:11.5px}
+  .pair-f{border-top:1px dashed var(--line);margin-top:8px;padding:10px 14px;font-size:11.8px;color:var(--ink-2);line-height:1.65;background:#fcfcfe}
+  .pair-f b{color:var(--ink)}
+  .outgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .ochip{font-size:11px;background:#fff;border:1px solid var(--line-strong);border-radius:8px;padding:3px 8px}
+  .fixline{margin-top:7px;font-size:11.5px;background:var(--warn-soft);border:1px solid #ecdcb4;color:#8a5f08;border-radius:9px;padding:7px 9px;line-height:1.6}
+
+  /* ---------- modal ---------- */
+  .modal{position:fixed;inset:0;z-index:100;display:none}
+  .modal.show{display:block}
+  .modal .bd{position:absolute;inset:0;background:rgba(22,26,42,.42);backdrop-filter:blur(2px)}
+  .dlg{
+    position:relative;margin:5vh auto;width:min(860px,94vw);max-height:88vh;background:#fff;border-radius:16px;
+    box-shadow:0 30px 70px -20px rgba(18,22,40,.5);display:flex;flex-direction:column;overflow:hidden;
+  }
+  .dlg-h{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+  .dlg-h .row1{display:flex;align-items:center;justify-content:space-between}
+  .dlg-h h3{margin:0;font-size:15px}
+  .dlg-h .x{border:0;background:#f1f2f7;border-radius:9px;width:30px;height:30px;font-size:16px;cursor:pointer;color:var(--ink-2);line-height:1}
+  .filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .fchip{font-size:11.5px;border:1px solid var(--line-strong);background:#fff;border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--ink-2);display:flex;gap:6px;align-items:center}
+  .fchip .d{width:8px;height:8px;border-radius:50%}
+  .fchip .c{font-size:10px;color:var(--ink-3)}
+  .fchip.on{border-color:#d79ab7;background:#fff4f9;color:#a32a5c;font-weight:600}
+  .plist{overflow:auto;padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));grid-auto-rows:max-content;gap:9px;
+    -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  /* 数百只精灵一次性铺进列表，手机端滚动时若全部参与绘制会明显掉帧。
+     content-visibility:auto 让视口外的卡片跳过布局与绘制；contain-intrinsic-size
+     用 auto 关键字记住上次的真实高度，滚动条与行高不会跳。 */
+  .pitem{border:1px solid var(--line);border-radius:11px;padding:9px 10px;cursor:pointer;transition:.13s;background:#fff;text-align:left;
+    content-visibility:auto;contain-intrinsic-size:auto 76px}
+  .pitem:hover{border-color:#d79ab7;background:#fffafc;transform:translateY(-1px)}
+  .pitem .r1{display:flex;gap:8px;align-items:center}
+  .pitem .pic{width:30px;height:30px;border-radius:8px;flex:0 0 auto;background:#f7f8fc;box-shadow:inset 0 0 0 1px rgba(20,26,48,.05)}
+  .pitem .r1{align-items:center}
+  .pitem .nmwrap{min-width:0;flex:1;display:flex;flex-direction:column}
+  .pitem .nm{font-size:12.5px;font-weight:650;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pitem .ntypes{font-size:10px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pitem .sb{font-size:10px;color:var(--ink-3)}
+  .pitem .r2{display:flex;flex-wrap:wrap;align-items:center;gap:3px;margin-top:6px}
+
+  .rulesdoc{margin-top:16px}
+  .rulesdoc ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.85;color:var(--ink-2)}
+  .rulesdoc ol b{color:var(--ink)}
+  .note{font-size:11.8px;color:var(--ink-3);line-height:1.75;margin-top:12px;padding:11px 13px;background:#fbfbfd;border:1px dashed var(--line-strong);border-radius:11px}
+  .note code{font-family:ui-monospace,Consolas,monospace;font-size:11px;background:#eef0fb;color:#4a3ba8;padding:0 4px;border-radius:4px}
+  /* 说明卡分层版：标题行 + 步骤/字段行 + 脚注 */
+  .note .nhead{display:flex;align-items:center;gap:7px;font-size:12.2px;font-weight:700;color:var(--ink-2);margin-bottom:4px}
+  .note .nhead .dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:#5b4bd6}
+  .note .nsub{font-size:10.8px;color:var(--ink-3);margin:0 0 6px 13px;line-height:1.5}
+  .note .step{display:flex;gap:8px;align-items:flex-start;padding:4.5px 0;border-top:1px solid #f0f0f6}
+  .note .step .no{flex:0 0 auto;width:17px;height:17px;border-radius:50%;background:#f1ecff;color:#5b4bd6;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1.5px}
+  .note .step .tx{min-width:0;font-size:11.8px;line-height:1.65}
+  .note .step .tx b{color:var(--ink-2)}
+  .note .kvrow{display:flex;gap:8px;align-items:flex-start;padding:4.5px 0;border-top:1px solid #f0f0f6}
+  .note .kvrow .k{flex:0 0 auto;font-size:10.5px;font-weight:700;color:#4a3ba8;background:#eef0fb;border-radius:5px;padding:1.5px 7px;margin-top:1.5px}
+  .note .kvrow .tx{min-width:0;font-size:11.8px;line-height:1.65}
+  .note .kvrow .tx b{color:var(--ink-2)}
+  .note .nfoot{margin-top:7px;padding-top:7px;border-top:1px dashed var(--line-strong);font-size:10.8px;color:var(--ink-3);line-height:1.6}
+  /* ---------- 存档 / 分享 ---------- */
+  .saverow{display:flex;gap:7px;align-items:center}
+  .saverow input{flex:1;min-width:0}
+  .sharebox{padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:#fbfbfd}
+  .sharebox .sttl{display:flex;align-items:center;gap:7px;font-size:11.8px;font-weight:700;color:var(--ink-2);margin-bottom:7px}
+  .sharebox .sttl .dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:#5b4bd6}
+  .sharebox .sttl .tag{margin-left:auto;font-weight:400}
+  .shareline{display:flex;gap:6px;align-items:center}
+  .shareline input{flex:1;min-width:0}
+  #shareurl{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--ink-2)}
+  .sharehint{margin-top:7px;font-size:10.8px;color:var(--ink-3);line-height:1.6}
+  .slist{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:9px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .sitem{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;transition:.14s}
+  .sitem:hover{border-color:#d79ab7}
+  .sitem .top{display:flex;align-items:baseline;gap:8px}
+  .sitem .nm{font-size:13px;font-weight:650;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sitem .meta{font-size:11px;color:var(--ink-3);margin-left:auto;white-space:nowrap;flex:0 0 auto}
+  .sitem .thumbs{display:flex;gap:4px;flex-wrap:wrap;margin:7px 0 0}
+  .sitem .thumbs .pic{width:26px;height:26px;border-radius:7px;background:#f7f8fc;box-shadow:inset 0 0 0 1px rgba(20,26,48,.05)}
+  .sitem .acts{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+  .sitem .acts button{font:inherit;font-size:11.5px;border:1px solid var(--line-strong);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;color:var(--ink-2);transition:.14s}
+  .sitem .acts button:hover{border-color:#d79ab7;color:var(--rose)}
+  .sitem .acts button.pri{background:linear-gradient(140deg,var(--rose),#c4559f);border-color:transparent;color:#fff;font-weight:600}
+  .sitem .acts button.pri:hover{color:#fff;box-shadow:0 5px 14px -6px rgba(200,70,140,.7)}
+  .sitem .acts button.danger:hover{border-color:#e8b4b4;color:var(--bad);background:#fdf5f5}
+  .sempty{padding:24px 16px;text-align:center;color:var(--ink-3);font-size:12.5px;line-height:1.85}
+  /* 打开分享链接后的提示条 */
+  .sharetip{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 16px;padding:11px 14px;border-radius:13px;
+    border:1px solid #d9cffa;background:linear-gradient(140deg,#f7f4ff,#fff 72%);
+    font-size:12.5px;color:var(--ink-2);box-shadow:var(--shadow);line-height:1.6;
+  }
+  .sharetip>b{color:#4a3ba8}
+  .sharetip .sp{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+  .sharetip button{font:inherit;font-size:12px;border:1px solid var(--line-strong);background:#fff;border-radius:9px;padding:5px 11px;cursor:pointer;color:var(--ink-2);transition:.14s}
+  .sharetip button:hover{border-color:#b9bfd0;color:var(--ink)}
+  .sharetip button.pri{background:linear-gradient(140deg,#7b61ff,#5b4bd6);border-color:transparent;color:#fff;font-weight:600}
+  .sharetip button.pri:hover{color:#fff;box-shadow:0 6px 16px -6px rgba(90,75,214,.7)}
+  /* 轻提示 */
+  .toast{
+    position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+    background:rgba(28,32,48,.93);color:#fff;font-size:12.5px;line-height:1.5;padding:9px 16px;border-radius:11px;
+    max-width:86vw;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:400;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  footer{margin-top:26px;text-align:center;font-size:11.5px;color:var(--ink-3);line-height:1.9}
+  footer a{color:var(--ink-3)}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#d8dbe4;border-radius:6px}
+  ::-webkit-scrollbar-thumb:hover{background:#c3c7d3}
+
+  /* =========================================================================
+     手机 / 窄屏适配（<=760px）
+     —— 只在小屏生效，桌面端（>760px）样式与布局完全不变
+     ========================================================================= */
+  .phone-only{display:none}
+  .mfilters{display:contents}          /* 桌面：容器不产生额外盒子，等于原结构 */
+  .mfilter-toggle{display:none}
+
+  @media (max-width:760px){
+    /* ---- 骨架与基础排版 ---- */
+    .wrap{padding:12px 10px calc(34px + env(safe-area-inset-bottom))}
+    .hero{gap:10px;align-items:stretch;margin-bottom:12px}
+    .hero h1{font-size:19px;gap:8px;line-height:1.3}
+    .hero h1 .egg{width:26px;height:26px}
+    .hero p{margin-top:6px;font-size:11.5px;line-height:1.6}
+    .verdict{
+      min-width:0;width:100%;text-align:left;padding:10px 13px;
+      display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap;
+    }
+    .verdict .vlabel{font-size:10px}
+    .verdict .vtext{font-size:17px;margin-top:0}
+    .verdict .vsub{font-size:11px;margin-top:0;margin-left:auto}
+    .card-h{padding:11px 12px}
+    .card-h .tips{font-size:10.5px}
+    .card-b{padding:12px}
+
+    /* ---- 统计条：2×2 更好读 ---- */
+    .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+    .stat{padding:9px 11px;border-radius:12px}
+    .stat b{font-size:19px}
+    .stat span{font-size:10.5px}
+
+    /* ---- 工具栏：加大按钮，方便点按 ---- */
+    .main{gap:12px}
+    .toolbar{padding:9px 10px;gap:6px}
+    .tgroup{padding-right:0;margin-right:0;border-right:0;gap:5px}
+    .tgroup>label{font-size:10.5px}
+    .btn{font-size:12px;padding:8px 10px;min-height:36px;border-radius:10px}
+    .btn:hover{transform:none}                 /* 触屏无 hover，避免粘滞 */
+    .seg button{font-size:11.5px;padding:7px 9px;min-height:32px}
+    select,input[type=text]{font-size:13px;padding:7px 9px;min-height:34px}
+
+    /* ---- 画布：手机端内部滚动，画布始终留在视口内 ----
+       注意保留 overscroll-behavior:auto（而不是 contain）：画布滚到底后手势能
+       自然续接到整页，否则手指继续下拉时页面纹丝不动，主观感受就是"卡"。 */
+    .board-wrap{padding:8px;max-height:56vh;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:auto}
+    .hint{padding:9px 12px;gap:5px 12px;font-size:11px;line-height:1.6}
+    .phone-only{display:inline}
+    .desk-only{display:none}
+
+    /* 画布小窝：随格子变小分级压缩内部元素（.sm / .xs 由 JS 按格子尺寸切换）
+       三档高度预算（图标+名字必须完整可见）：
+       基础 ≥55px / sm ≥51px / xs ≥40px（.nest 高 = 格子 - 6px） */
+    .nest{border-radius:9px;padding:10px 2px 2px}
+    .nest .seq{font-size:8.5px;top:2px;left:4px}
+    .nest .sex{font-size:9px;line-height:13px;padding:0 3px;top:2px;right:3px}
+    .nest .pic{width:22px;height:22px}
+    .nest .pic img{filter:none}                /* 去掉投影滤镜：拖动小窝时省掉一层滤镜重算 */
+    .nest .pname{font-size:9px;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .nest .pname.long{font-size:8.5px}
+    .nest .gdot{width:5px;height:5px}
+    .nest .av{font-size:7.5px;line-height:11px;padding:0 2px}
+    .nest .stardot,.nest .recdot{font-size:8.5px;bottom:1px;left:2px}
+    .nest{min-width:0}
+    .board.sm .nest{padding:9px 2px 1px}
+    .board.sm .nest .pic{width:19px;height:19px}
+    .board.sm .nest .pname{font-size:8px;line-height:1.1}
+    .board.xs .nest{padding:8px 1px 1px;gap:0}
+    .board.xs .nest .pic{width:16px;height:16px}
+    .board.xs .nest .pname{font-size:8px;line-height:1.05;-webkit-line-clamp:1;margin-top:1px}
+    .board.xs .nest .gdot{width:4px;height:4px}
+    .board.xs .nest .av{display:none}
+    .board.xs .nest .gbar{display:none}          /* 极小格子隐藏蛋组色点，给名字让位（面板里仍有文字） */
+    .board.xs .nest .seq{font-size:7.5px;top:1px;left:3px}
+    .board.xs .nest .sex{font-size:8px;line-height:11px;top:1px;right:2px}
+    /* 空窝：同样整窝居中，并随格子缩小（此前 xs 档内容高 36px > 可用 28px，底部文字被裁掉） */
+    .board.sm .nest.empty,.board.xs .nest.empty{padding-top:1px;justify-content:center}
+    .board.sm .nest .empty-in{font-size:9.5px;gap:1px}
+    .board.sm .nest .empty-in .plus{font-size:15px}
+    .board.xs .nest .empty-in{font-size:8.5px;gap:0}
+    .board.xs .nest .empty-in .plus{font-size:12px}
+
+    /* ---- 小窝配置面板 ---- */
+    .nests{padding:10px;max-height:none;gap:9px}
+    .ncard{padding:10px}
+    .ncard-top{gap:6px;margin-bottom:7px}
+    .ncard-top .id{font-size:12px}
+    .ncard-top .pos{font-size:10px;margin-left:3px}
+    .ncard-top .acts{gap:4px}
+    .ncard-top .acts .tag{font-size:9.5px;padding:2px 6px}
+    .mini{font-size:11px;padding:6px 9px;min-height:32px;border-radius:8px}
+    .card-h .minifill{font-size:11px;padding:5px 10px;min-height:30px}
+    .petchip{padding:8px 10px;min-height:46px}
+    .petchip .pic{width:32px;height:32px}
+    .petchip .txt b{font-size:12.5px}
+    .sexseg button{padding:7px 11px;min-height:30px;font-size:12px}
+    .basebar{padding:8px 10px;font-size:11px;flex-wrap:wrap;gap:5px}
+    .basebar .clr{margin-left:auto;padding:5px 9px;min-height:30px}
+    .sexseg button:disabled{opacity:.35}
+    .shinyflex{padding:3px 0;min-height:26px}
+
+    /* ---- 预测报告 ---- */
+    .pairgrid{grid-template-columns:1fr}
+    .pair-h{padding:11px 12px 9px;gap:8px}
+    .pair-h .who{font-size:12.5px}
+    .pair-f{padding:9px 12px;font-size:11.5px}
+    .rulesdoc ol{font-size:12px;padding-left:18px}
+    .note{font-size:11.5px;padding:10px 11px}
+    .seasonbox .kv .k{flex:0 0 46px}
+
+    /* ---- 精灵选择器：整屏 ---- */
+    /* 全屏遮罩去掉 backdrop-filter：移动端要每帧对整屏做模糊合成，开销极大，
+       在选择器里滚动 600+ 条时最明显。改用纯色半透明，观感几乎一致。 */
+    .modal .bd{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(22,26,42,.52)}
+    .dlg{
+      position:fixed;inset:0;margin:0;width:100%;height:100%;
+      max-width:none;max-height:none;border-radius:0;
+    }
+    .dlg-h{padding:calc(10px + env(safe-area-inset-top)) 12px 10px;gap:8px}
+    .dlg-h h3{font-size:14px}
+    .dlg-h .x{width:40px;height:40px;font-size:20px;border-radius:11px;background:#f1f2f7}
+    #q{font-size:16px;padding:10px 12px;min-height:44px}   /* >=16px 防 iOS 自动放大 */
+    .filters{gap:5px}
+    .fchip{font-size:12px;padding:7px 11px;min-height:34px}
+    .fchip:hover{transform:none}
+    .mfilter-toggle{
+      display:flex;align-items:center;justify-content:center;gap:5px;
+      font:inherit;font-size:12px;color:#4a3ba8;background:#f6f3ff;
+      border:1px dashed #d8cffa;border-radius:10px;padding:8px 10px;
+      min-height:38px;cursor:pointer;
+    }
+    .mfilter-toggle .ar{font-size:10px}
+    .mfilters{display:none}
+    .mfilters.open{display:flex;flex-direction:column;gap:6px}
+    .prefilter{gap:5px}
+    .ptag{font-size:11px;padding:5px 9px}
+    .ptip{font-size:10.5px}
+    .plist{
+      flex:1 1 auto;min-height:0;padding:10px 12px calc(14px + env(safe-area-inset-bottom));
+      grid-template-columns:1fr;gap:8px;           /* 手机端单列：不再两列窄卡堆叠 */
+    }
+    .pitem{padding:9px 11px;min-height:0;contain-intrinsic-size:auto 61px;transition:none}
+    .pitem:hover{transform:none;background:#fff}
+    .pitem .r1{gap:10px}
+    .pitem .pic{width:34px;height:34px;border-radius:9px}
+    .pitem .nm{font-size:13px;font-weight:650}
+    .pitem .ntypes{font-size:10.5px;margin-top:1px}
+    .pitem .r2{margin-top:7px;gap:4px}
+    /* 名称/形态/编号行允许自然换行：不再依赖 nowrap+ellipsis 裁切，
+       即使 WebView 异常放大字体也只会把卡片撑高，不会把文字画到别的行上 */
+    .pitem .nm{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.32}
+    .pitem .nm small{font-size:10.5px}
+    .pitem .ntypes{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.35}
+    .pitem .r2 .tag,.pitem .r2 .gb{overflow-wrap:normal}   /* 芯片内部保持整词 */
+    /* 面板小窝信息条同样放宽 */
+    .petchip .txt b{white-space:normal;overflow:visible;text-overflow:clip}
+    .petchip .txt small{white-space:normal;overflow:visible;text-overflow:clip}
+
+    /* ---- 存档 / 分享（手机端：输入框放大、按钮加大、列表单列） ---- */
+    .saverow{flex-wrap:wrap}
+    .saverow .btn{width:100%;justify-content:center}
+    #savename,#importcode{font-size:16px;min-height:42px}   /* >=16px 防 iOS 聚焦放大整个页面 */
+    .shareline{flex-wrap:wrap}
+    #shareurl{flex:1 1 100%;font-size:11.5px;min-height:36px}
+    .shareline .btn{flex:1;justify-content:center}
+    .slist{padding:10px 12px calc(14px + env(safe-area-inset-bottom));gap:8px}
+    .sitem{padding:10px 11px}
+    .sitem .meta{font-size:10.5px}
+    .sitem .acts{gap:6px}
+    .sitem .acts button{min-height:34px;padding:7px 12px;font-size:12px}
+    .sitem .acts button.pri{flex:1}
+    .sharetip{padding:10px 12px;font-size:12px;gap:7px;margin-bottom:12px}
+    .sharetip .sp{margin-left:0;width:100%}
+    .sharetip .sp button{flex:1;min-height:36px}
+    #shareurl,#importcode{font-family:inherit}
+  }
+
+  /* 极窄屏（<=360px）再收紧一档 */
+  @media (max-width:360px){
+    .wrap{padding-left:8px;padding-right:8px}
+    .stats{gap:6px}
+    .stat b{font-size:17px}
+    .pitem .pic{width:30px;height:30px}
+  }
+
+  /* ==================== 视觉主题 v10 · 中性石墨 + 靛蓝重点 ====================
+     只覆盖 颜色 / 圆角 / 阴影 / 字重 / 动效，刻意不动 padding、尺寸、布局与
+     display —— 手机端媒体查询里的适配（格子压缩、筛选折叠、断点）因此照旧生效。
+     所有动效只走 transform / opacity，且手机端关闭常驻动画，保住滚动性能。 */
+
+  /* ---- 1. 浅底一律改中性冷灰（不带色相），让重点色成为全站唯一的彩色 ---- */
+  .cellbox{background:#fcfcfd;border-right-color:#eff0f4;border-bottom-color:#eff0f4}
+  .cellbox:hover{background:#f2f3f8}
+  .toolbar,.hint{background:#fafbfc}
+  .note{background:#fafbfc;border-color:var(--line)}
+  .sharebox{background:#fafbfc}
+  .pair-f{background:#fafbfc}
+  .seasonbox{background:#fafaff;border-color:#e9e8f7}
+  .sexseg{background:#eef0f4}
+  .sec-title .n{background:#eef0f4;color:var(--ink-3)}
+  .basebar{background:#fafaff}
+  .basebar .clr{background:#fff}
+  .filters.prefilter{background:var(--accent-soft);border-color:var(--accent-line)}
+  .tag{background:#f1f2f6;color:var(--ink-2)}
+  .ptag{background:var(--accent-soft);color:var(--accent-deep)}
+  .pitem .pic,.petchip .pic,.sitem .thumbs .pic,.ptag .pic,.basebar .pic,.whoside .pic,.pitem .pic i,.pic i{background:#f7f8fa}
+  .pitem .pic,.petchip .pic,.sitem .thumbs .pic,.ptag .pic,.basebar .pic,.whoside .pic{box-shadow:inset 0 0 0 1px rgba(16,24,40,.07)}
+
+  /* ---- 2. 卡片 / 区块：白底 + 中性描边 + 中性软阴影 ----
+     统计条不再四色乱配：只把「可生蛋配对」这一项关键指标点亮（靛蓝），
+     其余数字走中性深色 —— 关键信息因此可以一眼扫到。 */
+  .verdict{border-radius:16px}
+  .verdict.ok{background:linear-gradient(140deg,#eefaf3,#fff 65%);border-color:#bfe6cf}
+  .verdict.bad{background:linear-gradient(140deg,#fdf0ef,#fff 65%);border-color:#f0cfcd}
+  .ncard{border-radius:12px}
+  .ncard.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.12);background:linear-gradient(140deg,#f7f7fe,#fff)}
+  .ncard.base{border-color:var(--accent-line);background:linear-gradient(140deg,#f7f7fe,#fff 65%);box-shadow:0 0 0 3px rgba(79,70,229,.09)}
+  .pair{border-radius:12px}
+  .pair.ok{border-color:#bfe6cf;background:linear-gradient(180deg,#f2fbf6,#fff 42%)}
+  .pair.bad{border-color:#f0cfcd;background:linear-gradient(180deg,#fdf5f4,#fff 42%)}
+  .pair.pending{border-color:#eddfc0;background:linear-gradient(180deg,#fdfaf2,#fff 42%)}
+  .sitem{border-radius:12px}
+  .dlg{border-radius:14px;box-shadow:0 30px 70px -24px rgba(16,24,40,.42)}
+  .stats .stat b{font-variant-numeric:tabular-nums}
+  .stats .stat{position:relative;overflow:hidden}
+  .stats .stat::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 3px 3px 0}
+  .stats .stat::after{background:var(--line-strong)}
+  .stats .stat b{color:var(--ink)}
+  .stats .stat.hl{background:linear-gradient(140deg,var(--accent-soft),#fff 72%);border-color:var(--accent-line)}
+  .stats .stat.hl::after{background:var(--accent)}
+  .stats .stat.hl b{color:var(--accent)}
+  .hero h1{font-weight:800;letter-spacing:-.02em}
+  .card-h h2,.sec-title{font-weight:700}
+
+  /* ---- 3. 按钮：主色实心 / 白底描边 / 浅底幽灵，按压轻微回馈 ---- */
+  .btn{
+    border-color:var(--line-strong);border-radius:var(--radius-sm);color:var(--ink-2);font-weight:600;
+    transition:transform .16s var(--ease),box-shadow .16s var(--ease),border-color .12s linear,background .12s linear,color .12s linear;
+  }
+  .btn:hover{border-color:var(--accent);color:var(--accent-deep);transform:translateY(-1px);box-shadow:0 6px 16px -10px rgba(79,70,229,.5)}
+  .btn:active{transform:scale(.98);box-shadow:none}
+  .btn.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-deep)}
+  .btn.primary{background:linear-gradient(140deg,#5b53e8,#4338ca);border-color:transparent;color:#fff;box-shadow:0 6px 16px -10px rgba(67,56,202,.6)}
+  .btn.primary:hover{color:#fff;box-shadow:0 10px 22px -10px rgba(67,56,202,.72)}
+  /* 存档 / 分享：全工具栏唯一主色按钮，图标微调对齐 */
+  .btn .bi{font-size:13.5px;margin-right:5px;vertical-align:-1px}
+  .btn.ghost{background:#fff;color:var(--ink-3)}
+  .btn.danger:hover{border-color:#e8b4b4;color:var(--bad);background:#fdf5f5}
+  .mini,.sitem .acts button{
+    border-color:var(--line-strong);border-radius:9px;color:var(--ink-2);
+    transition:transform .16s var(--ease),border-color .12s linear,color .12s linear,background .12s linear;
+  }
+  .mini:hover,.sitem .acts button:hover{border-color:var(--accent);color:var(--accent-deep)}
+  .mini:active,.sitem .acts button:active{transform:scale(.97)}
+  .sitem .acts button.pri{background:linear-gradient(140deg,#5b53e8,#4338ca);border-color:transparent;color:#fff}
+  .sitem .acts button.pri:hover{color:#fff}
+
+  /* ---- 4. 芯片 / 标签 / 状态色：选中态用重点色，状态一律走语义色 ---- */
+  .fchip{
+    border-color:var(--line-strong);color:var(--ink-2);
+    transition:transform .16s var(--ease),background .12s linear,border-color .12s linear,color .12s linear,box-shadow .16s var(--ease);
+  }
+  .fchip:hover{border-color:var(--accent);color:var(--accent-deep)}
+  .fchip:active{transform:scale(.97)}
+  .fchip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep);box-shadow:0 3px 10px -6px rgba(79,70,229,.5)}
+  /* 「全部XX」这类汇总项（大类别）固定走中性灰蓝：未选中浅底、选中中灰底，
+     与「已筛到具体分类」的靛蓝形成一眼可辨的区分；换色不动尺寸，手机端零回归 */
+  .fchip:not(.on)[data-g="all"],.fchip:not(.on)[data-s="all"],.fchip:not(.on)[data-b="all"],
+  .fchip:not(.on)[data-n="all"],.fchip:not(.on)[data-p="all"]{background:#f1f3f8;font-weight:600}
+  .fchip.on[data-g="all"],.fchip.on[data-s="all"],.fchip.on[data-b="all"],
+  .fchip.on[data-n="all"],.fchip.on[data-p="all"]{
+    border-color:#b7bfd0;background:#e5e9f2;color:#3c4557;font-weight:600;
+    box-shadow:0 2px 8px -6px rgba(60,69,87,.5);
+  }
+  .fchip.on[data-g="all"]:hover,.fchip.on[data-s="all"]:hover,.fchip.on[data-b="all"]:hover,
+  .fchip.on[data-n="all"]:hover,.fchip.on[data-p="all"]:hover{border-color:#9aa4b8;background:#dbe0ec;color:#2f3747}
+  .mfilter-toggle{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent-deep)}
+  .gb{border-radius:999px;background:#fff}
+  .tag{border-radius:999px}
+  .tag.warn{background:var(--warn-soft);color:var(--warn)}
+  .tag.bad{background:var(--bad-soft);color:var(--bad)}
+  .tag.ok,.tag.pairok{background:var(--ok-soft);color:var(--ok)}
+  .tag.enc.s1{background:#eeecfe;color:#4c40cf}
+  .tag.enc.s2{background:#fdeef3;color:#b3325f}
+  .tag.enc.s3{background:#e8f1fe;color:#1d64b0}
+  .tag.enc.s4{background:#f0ecfe;color:#6636bd}
+  .tag.enc.s5{background:#fff3e0;color:#9c5810}
+  .tag.base{background:var(--accent-soft);color:var(--accent-deep)}
+  .pill{border-radius:999px}
+  .pill.ok{background:var(--ok-soft);color:var(--ok);border-color:#bfe6cf}
+  .pill.bad{background:var(--bad-soft);color:var(--bad);border-color:#f0cfcd}
+  .pill.pending{background:var(--warn-soft);color:var(--warn);border-color:#eddfc0}
+  .sex.M{background:#e8f0fe;color:#3a6ad0}
+  .sex.F{background:#fde9ef;color:#c53d6b}
+  .sexseg button.on[data-s=M]{color:#3a6ad0}
+  .sexseg button.on[data-s=F]{color:#c53d6b}
+  .whoside .sx.M{color:#3a6ad0}
+  .whoside .sx.F{color:#c53d6b}
+  .fixline{background:var(--warn-soft);border-color:#eddfc0;color:var(--warn)}
+
+  /* ---- 5. 画布小窝：中性描边；配对态用重点色描边（不再是粉光） ---- */
+  .nest{border-radius:12px;border-color:#d8dae2}
+  .nest:hover{border-color:#b9bdd0}
+  .nest.empty{background:repeating-linear-gradient(135deg,#fafbfc 0 6px,#f4f5f8 6px 12px)}
+  .nest.paired{border-color:var(--accent);background:linear-gradient(160deg,#f7f7fe,#fff 70%);box-shadow:0 0 0 1px var(--accent-line) inset,0 6px 18px -12px rgba(79,70,229,.42)}
+  .nest.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.16),0 8px 20px -12px rgba(67,56,202,.5)}
+  .nest.dragging{box-shadow:0 18px 38px -16px rgba(16,24,40,.35)}
+  .nest .gdot{box-shadow:0 0 0 1px rgba(255,255,255,.95),0 0 0 2px rgba(16,24,40,.07)}
+  .nest .stardot{color:var(--hl-deep)}
+  .nest .recdot{color:var(--violet)}
+
+  /* ---- 6. 表单 / 弹窗 / 提示 ---- */
+  select,input[type=text]{border-color:var(--line-strong)}
+  select:focus,input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.14)}
+  .modal .bd{background:rgba(17,22,34,.44)}
+  .dlg-h{border-bottom-color:var(--line)}
+  .dlg-h .x{background:#f1f2f6;color:var(--ink-2);transition:background .15s linear,color .15s linear}
+  .dlg-h .x:hover{background:#e7e9ef;color:var(--ink)}
+  .sharetip{border-color:var(--accent-line);background:linear-gradient(140deg,var(--accent-soft),#fff)}
+  .toast{border-radius:10px;background:rgba(26,30,40,.94);box-shadow:0 12px 30px -14px rgba(16,24,40,.6)}
+  .pitem{border-radius:11px;transition:transform .14s var(--ease),border-color .12s linear,background .12s linear}
+  .pitem:hover{border-color:var(--accent);background:#f8f8fe}
+  .petchip{border-radius:11px}
+  .petchip:hover{border-color:var(--accent);background:#f8f8fe}
+  .sitem:hover{border-color:var(--accent)}
+  .ncard:hover{border-color:var(--accent-line)}
+  .whoside{border-radius:9px;border-color:var(--line)}
+  .note{border-radius:11px}
+  .basebar{border-bottom-color:var(--line)}
+  .seg{background:#eef0f4;border-radius:9px}
+  .seg button{color:var(--ink-3)}
+  .seg button.on{color:var(--ink);box-shadow:0 1px 4px rgba(16,24,40,.16)}
+  .sexseg{border-radius:9px}
+  .note .step,.note .kvrow{border-top-color:#eceef3}
+  .note .nhead,.sharebox .sttl{color:var(--ink-2)}
+  .note .nhead .dot,.sharebox .sttl .dot{background:var(--accent)}
+  .note code{background:var(--accent-soft);color:var(--accent-deep)}
+  .shinyflex input{accent-color:var(--hl)}
+  .hero p code{background:#eceef4;color:var(--ink-2)}
+
+  /* ---- 7. 动效：中性顺滑缓动，只用 transform / opacity ---- */
+  @keyframes floatIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes starPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.16)}}
+  @keyframes glowBreath{
+    0%,100%{box-shadow:0 0 0 1px var(--accent-line) inset,0 6px 18px -12px rgba(79,70,229,.4)}
+    50%{box-shadow:0 0 0 1px #a9aef7 inset,0 10px 24px -12px rgba(79,70,229,.6)}
+  }
+  .verdict,.stats .stat{animation:floatIn .3s var(--ease) both}
+  .stats .stat:nth-child(2){animation-delay:.05s}
+  .stats .stat:nth-child(3){animation-delay:.1s}
+  .stats .stat:nth-child(4){animation-delay:.15s}
+  .main>.card{animation:floatIn .34s var(--ease) both;animation-delay:.08s}
+  .ncard,.sitem,.pair{animation:floatIn .28s var(--ease) both}
+  .ncard:nth-child(2),.sitem:nth-child(2),.pair:nth-child(2){animation-delay:.04s}
+  .ncard:nth-child(3),.sitem:nth-child(3),.pair:nth-child(3){animation-delay:.08s}
+  .ncard:nth-child(4),.pair:nth-child(4){animation-delay:.12s}
+  .ncard:nth-child(5),.pair:nth-child(5){animation-delay:.16s}
+  .modal.show .dlg{animation:floatIn .24s var(--ease) both}
+  .nest.paired{animation:glowBreath 2.6s ease-in-out infinite}
+  .nest.dragging{animation:none}
+  .nest .stardot{animation:starPulse 1.8s ease-in-out infinite}
+
+  /* ---- 8. 焦点可视 + 滚动条（一律中性灰，不再染色） ---- */
+  :focus-visible{outline:3px solid rgba(79,70,229,.4);outline-offset:2px}
+  .plist::-webkit-scrollbar,.slist::-webkit-scrollbar,.board-wrap::-webkit-scrollbar,.nests::-webkit-scrollbar{width:9px;height:9px}
+  .plist::-webkit-scrollbar-thumb,.slist::-webkit-scrollbar-thumb,.board-wrap::-webkit-scrollbar-thumb,.nests::-webkit-scrollbar-thumb{
+    background:#d3d6de;border-radius:999px;border:2px solid transparent;background-clip:padding-box;
+  }
+  .plist::-webkit-scrollbar-thumb:hover,.slist::-webkit-scrollbar-thumb:hover{background:#c0c4ce;background-clip:padding-box}
+  .plist::-webkit-scrollbar-track,.slist::-webkit-scrollbar-track,.board-wrap::-webkit-scrollbar-track,.nests::-webkit-scrollbar-track{background:transparent}
+
+  /* ---- 9. 手机端：关掉常驻动画与粘滞 hover，保住滚动性能 ---- */
+  @media (max-width:760px){
+    .btn:hover{transform:none;box-shadow:none}
+    .btn:active{transform:scale(.97)}
+    .pitem:hover,.petchip:hover,.sitem:hover,.ncard:hover,.fchip:hover{transform:none}
+    .stats .stat,.verdict,.main>.card,.ncard,.sitem,.pair,.modal.show .dlg{animation:none}
+    .nest.paired{animation:none}
+    .nest .stardot{animation:none}
+  }
+
+  /* ---- 10. 尊重系统「减少动态效果」 ---- */
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+    .nest.paired,.nest .stardot{animation:none !important}
+  }
+
+  /* ==================== 11. 关键信息标注 ====================
+     全站只保留一个重点色，因此"哪些信息值得看"要靠标注手法表达。
+     手法固定为四类，克制使用：左侧色条 / 荧光笔底纹 / 浅底胶囊 / 描边点亮。 */
+
+  /* 11.1 基准小窝标签：描边点亮（配对推荐逻辑的锚点，需要一眼找到） */
+  .ncard.base .tag.base{box-shadow:0 0 0 1px var(--accent-line)}
+  .ncard-top .id{color:var(--ink)}
+
+  /* 11.2 配对判定行：不成立的一行铺浅红底整行标注，扫一眼就知道卡在哪条规则 */
+  .rules li{border-radius:7px;padding:4px 7px}
+  .rules li.r-no{background:rgba(220,38,38,.06)}
+  .rules li.r-ok .mark{color:var(--ok)}
+  .rules li.r-no .mark{color:var(--bad)}
+
+  /* 11.3 判定结论 pill：加粗 + 描边点亮（一张卡片最重要的信息） */
+  .pill{font-weight:800;letter-spacing:.01em;padding:4px 11px}
+  .pill.ok{box-shadow:0 0 0 1px rgba(21,128,61,.14)}
+  .pill.bad{box-shadow:0 0 0 1px rgba(220,38,38,.14)}
+  .pill.pending{box-shadow:0 0 0 1px rgba(169,97,10,.14)}
+
+  /* 11.4 报告「预计产出」关键值：荧光笔式底纹 */
+  .pair-f .kval{background:var(--hl-soft);border-bottom:1.5px solid var(--hl);padding:0 3px;border-radius:3px;font-weight:700;color:var(--hl-deep)}
+
+  /* 11.5 说明区关键术语：用重点色加粗（说明区是"读"的内容，
+     改用重点色而非铺底，避免整段满屏色块；铺底留给报告区的结论值） */
+  .rulesdoc ol li b,.note .step .tx b,.note .kvrow .tx b{color:var(--accent-deep);font-weight:700}
+
+  /* 11.6 统计条关键指标（可生蛋配对）连同文字一起点亮 */
+  .stats .stat.hl span{color:var(--accent-deep)}
+
+  /* ==================== 12. 排版健壮性：杜绝长文本溢出容器 ====================
+     页面文字量大（判定依据 / 修复建议 / 赛季说明 / 长精灵名），此处统一兜底：
+     flex 或 grid 子项一律允许收缩（min-width:0），长串允许在任意位置断行，
+     需要单行展示的位置保持省略号。避免文字被挤出卡片边界。 */
+  .rules li>span{min-width:0;overflow-wrap:anywhere}
+  .rules li .why{overflow-wrap:anywhere}
+  .pair-h .who,.pair-h .who b,.whoside b{overflow-wrap:anywhere}
+  .wholine{min-width:0}
+  .ochip{max-width:100%;overflow-wrap:anywhere;flex-wrap:wrap}
+  .pair-f,.fixline{overflow-wrap:anywhere}
+  .note,.note .step .tx,.note .kvrow .tx,.rulesdoc ol li{overflow-wrap:anywhere}
+  .card-h{flex-wrap:wrap}
+  .card-h h2{min-width:0;flex-wrap:wrap}
+  .verdict .vtext,.verdict .vsub,.sharetip{overflow-wrap:anywhere}
+  .toast{overflow-wrap:anywhere;word-break:break-word}
+  .sitem .nm,.pitem .nm,.pitem .ntypes,.petchip .txt,select,input[type=text]{min-width:0}
+  code{overflow-wrap:anywhere;word-break:break-word}
+  .seasonbox .kv .v,.basebar{overflow-wrap:anywhere;min-width:0}
+  .basebar>*{min-width:0}
+  .plist,.slist,.pairgrid{min-width:0}
+  .pairgrid>*{min-width:0}
+  .nest .pname,.empty-state,.hint span{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div>
+      <h1><span class="egg"></span>洛克王国世界 · 孵蛋模拟器</h1>
+      <p>自定义小窝数量并自由摆放，模拟家园孵化界面。系统依据 <code>相邻紧贴 + 一公一母 + 同蛋组（双蛋组满足其一）+ 母系定种</code> 规则，
+         对当前布局实时预测能否生蛋，并逐条列出判定依据。数据源自 B 站洛克王国世界 WIKI 孵蛋组别查询（<span id="hero-total">—</span> 只精灵 / <span id="hero-groups">—</span> 个蛋组）。</p>
+    </div>
+    <div class="verdict bad" id="verdict">
+      <div class="vlabel">实时判定</div>
+      <div class="vtext" id="vtext">—</div>
+      <div class="vsub" id="vsub">请先放置小窝</div>
+    </div>
+  </div>
+
+  <div class="sharetip" id="sharetip" style="display:none"></div>
+
+  <div class="stats">
+    <div class="stat"><b id="s-nest">0</b><span>小窝数量</span></div>
+    <div class="stat"><b id="s-adj">0</b><span>紧贴相邻配对</span></div>
+    <div class="stat hl"><b id="s-ok">0</b><span>可生蛋配对</span></div>
+    <div class="stat"><b id="s-egg">0</b><span>预计单轮产蛋（枚）</span></div>
+  </div>
+
+  <div class="main">
+    <!-- ============ 左：画布 ============ -->
+    <div class="card">
+      <div class="toolbar">
+        <div class="tgroup">
+          <label>相邻规则</label>
+          <div class="seg" id="mode-seg">
+            <button data-m="orth" class="on">四向紧贴</button>
+            <button data-m="diag">八向含斜角</button>
+          </div>
+        </div>
+        <div class="tgroup">
+          <label>网格</label>
+          <select id="cols"></select><span style="color:var(--ink-3);font-size:12px">×</span><select id="rows"></select>
+        </div>
+        <div class="tgroup">
+          <label>布局模板</label>
+          <button class="btn" data-tpl="line3">一字并排（一公两母）</button>
+          <button class="btn" data-tpl="twopair">双组并行</button>
+          <button class="btn" data-tpl="tri">三角环绕</button>
+        </div>
+        <div class="tgroup">
+          <button class="btn ghost" id="rand" title="有空窝时只填空窝；小窝已满则整盘重新随机（自动补成一公一母）">随机填充</button>
+          <button class="btn ghost" id="same" title="把画布上的小窝随机统一到同一个蛋组，每点一次换一个组别">统一蛋组</button>
+          <button class="btn danger" id="clear">清空小窝</button>
+        </div>
+        <div class="tgroup">
+          <button class="btn primary" id="open-save" title="保存多套孵蛋布局，或生成分享链接发给别人"><span class="bi">💾</span>存档 / 分享</button>
+        </div>
+      </div>
+      <div class="board-wrap" id="board-wrap">
+        <div class="board" id="board">
+          <div class="cells" id="cells"></div>
+          <svg class="underlay" id="underlay"></svg>
+          <svg class="overlay" id="overlay"></svg>
+        </div>
+      </div>
+      <p class="hint">
+        <span><b>空位点击</b> 放置小窝</span>
+        <span><b>拖动小窝</b> 自由摆放（自动吸附格子）</span>
+        <span class="desk-only"><b>点击小窝</b> 在右侧放入精灵</span>
+        <span class="phone-only"><b>轻点小窝</b> 直接选精灵（拖动即可移动）</span>
+        <span><b>选中放好精灵的小窝</b> 后，空窝会标出「<b>可补位</b>」并预告 ★，其它窝的选择器也会推荐可配对精灵</span>
+        <span class="desk-only"><b>右键 / <kbd>Delete</kbd></b> 移除</span>
+        <span class="phone-only"><b>「小窝配置」点移除</b> 删除小窝</span>
+        <span><b>靛蓝实线 + ❤</b> 判定可生蛋，<b>灰色虚线</b> 判定失败</span>
+      </p>
+    </div>
+
+    <!-- ============ 右：小窝面板 ============ -->
+    <div class="card">
+      <div class="card-h">
+        <h2>小窝配置 <button class="minifill" id="fill" title="按当前配对基准，把画布上的空窝自动补成可配对的精灵（自动配好一公一母）">✦ 一键补位</button></h2>
+        <span class="tips" id="nest-tip">0 个小窝</span>
+      </div>
+      <div id="basebar"></div>
+      <div class="nests" id="nests">
+        <div class="empty-state">还没有小窝。<br>在左侧网格点击空白格子即可放置。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 预测报告 ============ -->
+  <div class="card report">
+    <div class="card-h">
+      <h2>孵蛋预测报告 <span class="tips">判定依据逐条可查</span></h2>
+      <span class="tips" id="report-tip"></span>
+    </div>
+    <div class="card-b">
+      <div id="isolated"></div>
+      <div id="pairgrid" class="pairgrid"></div>
+      <div id="pair-empty" class="empty-state" style="display:none">
+        当前没有任何小窝处于紧贴状态，无法触发配对。<br>试着把两个小窝放到相邻的格子上，或点上方「布局模板」。
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 规则说明 ============ -->
+  <div class="card rulesdoc">
+    <div class="card-h"><h2>判定规则说明（攻略依据）</h2><span class="tips">来源：洛克王国世界 WIKI · 官方攻略整理</span></div>
+    <div class="card-b">
+      <ol>
+        <li><b>小窝紧贴相邻</b>：至少两个小窝必须紧贴摆放，中间留空隙会被判定“分居”，放多久都不出蛋。摆放合格时会出现爱心特效。本模拟器默认按<b>四向正交紧贴</b>（上下左右共边）判定，可切换为<b>八向含斜角</b>（三角环绕等斜向贴合布局）。</li>
+        <li><b>性别一公一母</b>：配对必须为一雄一雌。同性、无性别精灵无法生蛋；配对失败在游戏内会提示“吵架”。赛季奇遇精灵（幽铃、布灵、乐乐鲨、蛋包蛋等）有性别、可正常配对；WIKI 尚未录入性别比例的按「公母均可」处理，并在卡片上标注提示。</li>
+        <li><b>同蛋组（生殖隔离）</b>：两只精灵必须属于同一蛋组。拥有双蛋组属性的精灵，只要任意一个蛋组与对方一致即可配对。</li>
+        <li><b>「未发现」蛋组禁止繁育</b>：战令宠、团本宠、翼王、帕尔、迪莫、阿布等属于未知蛋组，无论性别与摆放如何都无法生蛋。</li>
+        <li><b>母系定种</b>：子代种族完全随母本，父本只影响性格、资质、技能与异色/炫彩概率。</li>
+        <li><b>生蛋耗时</b>：随机 0.5～20 小时，其中选择 20 小时档位必定出蛋；超时未出蛋可收回重放重算。</li>
+      </ol>
+      <div class="note howto">
+        <div class="nhead"><span class="dot"></span>「配对推荐」怎么用</div>
+        <div class="step"><span class="no">1</span><span class="tx"><b>选基准</b> —— 小窝放入精灵并<b>选中它</b>，即成为配对基准（画布上带选中光环的小窝即基准）。</span></div>
+        <div class="step"><span class="no">2</span><span class="tx"><b>看推荐</b> —— 打开<b>其它窝</b>的选择器：可配对的排最前、带「<b>★ 可配对 · 建议性别</b>」角标，可一键「仅看可配对」。</span></div>
+        <div class="step"><span class="no">3</span><span class="tx"><b>一键放入</b> —— 点击推荐即放入，双方性别<b>自动补齐</b>；基准未定性别时默认做母本（子代＝基准精灵）。</span></div>
+        <div class="step"><span class="no">4</span><span class="tx"><b>一键补位</b> —— 点「小窝配置」标题后的「<b>✦ 一键补位</b>」：画布上所有空窝各自按<b>紧邻的精灵</b>自动补入可配对对象（同蛋组、自动配成一公一母），紧贴基准的直接判定成功，孤立空窝补好后再拖到基准旁即可生蛋。空窝左下角出现浅色 <b>★</b>，就表示这个位置有推荐可补。</span></div>
+        <div class="nfoot">判定只看三条：③ 一公一母 · ④ 非「未发现」组 · ⑤ 蛋组有交集；位置只标注「紧贴 / 间隔 N 格」，拖到相邻即可出蛋。</div>
+      </div>
+      <div class="note">
+        <b>选择器的默认规则：</b>为小窝挑精灵时，列表<b>默认只列「可生蛋」的精灵</b> —— 属于「未发现」蛋组、无法孵蛋的类型与形态
+        （战令宠 / 团本宠 / 翼王 / 帕尔 / 迪莫等）会被自动过滤掉，<b>默认精灵</b>也按同一规则动态选取
+        （可生蛋 → 一阶 → 可雄可雌 → 图鉴编号），不再固定取图鉴第一只。想查看或挑选这些精灵，
+        点筛选里的「<b>不可生蛋</b>」或「<b>全部精灵</b>」即可；当前条件下若无任何可生蛋精灵，会给出「显示全部精灵」的一键放宽入口。
+      </div>
+      <div class="note">
+        <b>模拟器边界说明：</b>本工具只模拟“<b>能不能生蛋</b>”的结构性判定（位置 + 性别 + 蛋组），
+        不模拟生蛋时长随机数、孵化加速、资质/性格遗传概率等动态数值，这些取决于游戏内实时随机与个体属性。
+        异色/炫彩勾选只用于提示稀有蛋概率加成，不参与“能否生蛋”的硬判定。
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    孵蛋模拟器 · 数据来源 <a href="https://wiki.biligame.com/nrc/%E5%AD%B5%E8%9B%8B%E7%BB%84%E5%88%AB%E6%9F%A5%E8%AF%A2" target="_blank" rel="noopener">洛克王国世界 WIKI</a> · 光环助手整理发布
+  </footer>
+</div>
+
+<!-- ============ 精灵选择器 ============ -->
+<div class="modal" id="modal">
+  <div class="bd" data-close></div>
+  <div class="dlg">
+    <div class="dlg-h">
+      <div class="row1">
+        <h3>为「<span id="m-nest">小窝</span>」选择精灵</h3>
+        <button class="x" data-close>×</button>
+      </div>
+      <input type="text" id="q" placeholder="输入图鉴编号或精灵名称，例如 001 / 喵喵 / 幽铃 / 赛季奇遇">
+      <div class="filters prefilter" id="prefilter" style="display:none"></div>
+      <button class="mfilter-toggle" id="mfilter-toggle" type="button">筛选条件<span class="ar">▾</span></button>
+      <div class="mfilters" id="mfilters">
+        <div class="filters" id="gfilters"></div>
+        <div class="filters" id="sfilters">
+          <button class="fchip on" data-s="all">全部性别 <span class="c" id="c-all"></span></button>
+          <button class="fchip" data-s="mf">可雄可雌 <span class="c" id="c-mf"></span></button>
+          <button class="fchip" data-s="fonly">仅雌性 <span class="c" id="c-fonly"></span></button>
+          <button class="fchip" data-s="none">无性别 <span class="c" id="c-none"></span></button>
+        </div>
+        <div class="filters">
+          <button class="fchip" data-b="all">全部精灵 <span class="c" id="c-breedall"></span></button>
+          <button class="fchip on" data-b="breed" title="默认规则：不列出不能生蛋的精灵（未发现蛋组 / 无法孵蛋的类型与形态）">可生蛋 <span class="c" id="c-breed"></span></button>
+          <button class="fchip" data-b="unknown" title="查看被默认规则排除的精灵：未发现蛋组，无论性别与摆放都无法生蛋">不可生蛋 <span class="c" id="c-unk"></span></button>
+        </div>
+        <div class="filters" id="nfilters"></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink-3)" id="m-count"></div>
+    </div>
+    <div class="plist" id="plist"></div>
+  </div>
+</div>
+
+<!-- ============ 存档 / 分享 ============ -->
+<div class="modal" id="smodal">
+  <div class="bd" data-sclose></div>
+  <div class="dlg">
+    <div class="dlg-h">
+      <div class="row1">
+        <h3>存档 / 分享</h3>
+        <button class="x" data-sclose>×</button>
+      </div>
+      <div class="saverow">
+        <input type="text" id="savename" maxlength="30" placeholder="给当前布局起个名字，例如：火系三连 / 三母一公">
+        <button class="btn primary" id="save-now">保存当前布局</button>
+      </div>
+      <div class="sharebox">
+        <div class="sttl"><span class="dot"></span>分享给别人的链接
+          <span class="tag" id="share-note"></span></div>
+        <div class="shareline">
+          <input type="text" id="shareurl" readonly placeholder="点「复制」即可，链接里已含完整布局">
+          <button class="btn" id="copy-share">复制</button>
+        </div>
+        <div class="shareline" style="margin-top:7px">
+          <input type="text" id="importcode" placeholder="或粘贴别人发来的分享码 / 链接">
+          <button class="btn" id="do-import">导入</button>
+        </div>
+        <div class="sharehint" id="sharehint">对方打开链接会自动还原这套布局（小窝位置、精灵、性别、异色标记全部一致）。</div>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink-3)" id="s-count"></div>
+    </div>
+    <div class="slist" id="slist"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="pet-data" type="application/json">/*__PET_DATA__*/</script>
+<script id="icon-data" type="application/json">/*__ICON_DATA__*/</script>
+
+<script>
+"use strict";
+/* =========================================================================
+   孵蛋模拟器 —— 数据模型 + 规则引擎 + 交互
+   ========================================================================= */
+
+const DB = JSON.parse(document.getElementById('pet-data').textContent);
+const PETS = DB.pets;
+const GROUPS = {};          // id -> {id,name,color}
+DB.groups.forEach(g => GROUPS[g.id] = g);
+const PETMAP = {};          // id -> pet
+PETS.forEach(p => PETMAP[p.id] = p);
+
+/* 精灵头像（wiki 官方 PetAvatar，已压缩为 72×72 WebP 内联为 data URI） */
+const ICONS = JSON.parse(document.getElementById('icon-data').textContent);
+
+const UNKNOWN_GID = 1;      // 「未发现」组，禁止繁育
+const CELL_MAX = 78;        // 格子基准尺寸（桌面端固定 78px，与旧版一致）
+const CELL_MIN_PHONE = 42;  // 手机端格子下限：低于 42px 触摸就不好点了，宁可横向滚动
+let CELL = CELL_MAX;        // 当前格子尺寸，手机端由 fitCell() 自适应缩小
+const PHONE_MAX = 760;      // 与 CSS 媒体查询断点保持一致
+
+/** 是否为手机 / 窄屏布局（仅此时启用自适应格子与轻点开选择器） */
+function isPhone(){
+  const w = window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 1024;
+  return w <= PHONE_MAX;
+}
+
+/** 手机端：按画布容器可用宽度自适应格子尺寸，让网格尽可能完整可见 */
+function fitCell(){
+  if (!isPhone()){ CELL = CELL_MAX; return; }
+  const wrap = el('board-wrap');
+  let avail = 0;
+  if (wrap){
+    const cs = getComputedStyle(wrap);
+    const pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    const cw = wrap.clientWidth || (window.innerWidth || 360);
+    avail = cw - pad - 2;                        // 减掉容器边框
+  } else {
+    avail = (window.innerWidth || 360) - 24;
+  }
+  const byW = Math.floor(avail / Math.max(1, state.cols));
+  CELL = Math.max(CELL_MIN_PHONE, Math.min(CELL_MAX, byW || CELL_MIN_PHONE));
+}
+
+/* 「赛季奇遇」组别（非蛋组，不影响 g 字段与繁育判定）
+   命名规则：赛季奇遇（Season Encounter）= 通过赛季奇遇机制获得的精灵及其进化形态
+   标识字段：
+     p.season —— 'S1'~'S5'（所属赛季奇遇链）| null（普通精灵）
+     p.role   —— 'encounter'（奇遇基础形态，可在赛季奇遇中直接捕捉）
+                 'evolution'（奇遇进化形态，由基础形态进化而来）| null
+   赛季元数据（赛季名/专属球/触发条件/出现地点）随数据注入 DB.seasons */
+const SEASON_META = {};
+(DB.seasons || []).forEach(s => SEASON_META[s.id] = s);
+const SEASON_LABEL = {};
+(DB.seasons || []).forEach(s => SEASON_LABEL[s.id] = s.label);
+const SEASON_IDS = (DB.seasons || []).map(s => s.id);
+/** 赛季标识 -> 配色 class（S1->s1 / S2->s2 …） */
+function seasonCls(sid){ return 's' + String(sid).replace(/^s/i, '').toLowerCase().replace(/[^0-9a-z]/g, ''); }
+/** 形态角色中文名 */
+function roleName(r){ return r === 'encounter' ? '奇遇基础形态' : r === 'evolution' ? '奇遇进化形态' : ''; }
+
+/* ---------- 精灵工具 ---------- */
+function gName(id){ return (GROUPS[id] || {name:'未知'}).name; }
+function gColor(id){ return (GROUPS[id] || {color:'#8a90a0'}).color; }
+
+/**
+ * 性别可用性：'MF' 可雄可雌 / 'F' 仅雌性 / '' 无性别（不可繁育配对）。
+ * wiki 的 gender_ratio 缺失（如 S4 / S5 赛季奇遇精灵）≠ 无性别 —— 实测游戏内
+ * 这些精灵有性别且可参与孵蛋，故缺失时默认公母均可；仅当数据明确为 0/0 才判无性别。
+ */
+function sexAvail(p){
+  const m = p.male, f = p.female;
+  if (m === 0 && f === 0) return '';                 // 明确无性别
+  if (m === 0 && f > 0) return 'F';                  // 仅雌性
+  return 'MF';                                       // 有性别 / 数据缺失默认公母均可
+}
+/** wiki 未录入性别比例的精灵（界面上标注提示） */
+const genderMissing = p => p.male === null || p.male === undefined;
+function unknownOnly(p){ return p.g.length === 1 && p.g[0] === UNKNOWN_GID; }
+function realGroups(p){ return p.g.filter(g => g !== UNKNOWN_GID); }
+
+/* ---------- 规则：可生蛋（默认精灵筛选的判定依据） ---------- */
+/**
+ * 「可生蛋」= 不属于「未发现」蛋组（战令宠 / 团本宠 / 翼王 / 帕尔 / 迪莫等无法孵蛋的
+ * 类型与形态）且具备性别可参与配对。小窝选择器默认只列出可生蛋的精灵。
+ */
+function canBreed(p){ return !!p && !unknownOnly(p) && sexAvail(p) !== ''; }
+/** 可生蛋精灵总数：为 0 时（数据异常）自动降级为「不过滤」，避免选择器被筛空 */
+const BREED_POOL_N = PETS.filter(canBreed).length;
+
+/**
+ * 默认精灵：按规则从可生蛋精灵中动态选取，而不是固定取图鉴第一只
+ * （NO.001 迪莫属「未发现」蛋组，根本不能生蛋）。
+ * 优先级：可生蛋 → 一阶（形态最常用）→ 可雄可雌（配对时性别可自适应）→ 图鉴编号。
+ * @param {object[]} [pool] 候选池，默认全部精灵（用于「按基准/筛选结果取默认」）
+ * @returns {object|null} 无任何候选时返回 null，由调用方兜底
+ */
+function defaultRank(p){
+  return (canBreed(p) ? 0 : 1) * 8
+       + (p.stage === 1 ? 0 : (p.stage ? 2 : 1))
+       + (sexAvail(p) === 'MF' ? 0 : 1);
+}
+function defaultPet(pool){
+  const list = (pool && pool.length ? pool : PETS).slice();
+  if (!list.length) return null;
+  list.sort((a, b) => (defaultRank(a) - defaultRank(b)) || cmpCatalog(a, b));
+  return list[0];
+}
+/** 图鉴序比较：编号 → 名称（编号不唯一，故以名称兜底，保证排序稳定） */
+function cmpCatalog(a, b){
+  const na = String(a.no).padStart(4, '0'), nb = String(b.no).padStart(4, '0');
+  return na < nb ? -1 : na > nb ? 1 : (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+}
+/** 把某个小窝的性别钳制到该精灵允许的范围内（仅雌性→F，无性别→null） */
+function clampSex(n){
+  const p = n.petId ? PETMAP[n.petId] : null;
+  if (!p){ n.sex = null; return; }
+  const av = sexAvail(p);
+  if (av === '') n.sex = null;
+  else if (av === 'F') n.sex = 'F';
+  else if (n.sex !== 'M' && n.sex !== 'F') n.sex = 'F';
+}
+/** 实际生效性别：'M' / 'F' / null(未定) / 'X'(无性别) */
+function effSex(n){
+  const p = n.petId ? PETMAP[n.petId] : null;
+  if (!p) return null;
+  const av = sexAvail(p);
+  if (av === '') return 'X';                       // 无性别精灵：不参与配对
+  if (av === 'F') return 'F';                      // 仅雌性：只能作为母本
+  return (n.sex === 'M' || n.sex === 'F') ? n.sex : null;
+}
+function typeColor(p){
+  const table = {
+    '草':'#5cb85c','火':'#e8613c','水':'#4a90d9','冰':'#63b8d8','翼':'#c9a227','虫':'#7aa832',
+    '恶':'#6b5b8c','光':'#d8b93a','萌':'#e88ab8','毒':'#9a5bb5','地':'#b3814a','武':'#c25b4a',
+    '机械':'#7a8794','电':'#d9b02a','龙':'#7b5bc4','普通':'#9aa0ad'
+  };
+  const k = (p.types[0] || '').replace(/系$/, '');
+  return table[k] || '#7b8fa8';
+}
+
+/**
+ * 精灵图标 HTML。
+ * @param {object|null} p   精灵对象；null 表示空窝
+ * @param {string} cls      附加类名（尺寸由 CSS 决定）
+ * 有官方头像就用 <img>，缺失时退化为属性色块，保证版面不塌。
+ */
+function iconHTML(p, cls){
+  const c = 'pic' + (cls ? ' ' + cls : '');
+  if (!p){
+    return `<span class="${c}" style="background:repeating-linear-gradient(135deg,#eef0f5 0 4px,#e4e7ef 4px 8px);border-radius:inherit"></span>`;
+  }
+  const uri = ICONS[p.id];
+  if (uri) return `<span class="${c}"><img src="${uri}" alt="${esc(p.title)}"></span>`;
+  return `<span class="${c}"><i style="background:linear-gradient(150deg,${typeColor(p)},${typeColor(p)}aa)"></i></span>`;
+}
+/** 取精灵图标 data URI，供非 HTML 场景使用 */
+function iconURI(p){ return (p && ICONS[p.id]) || ''; }
+
+/** 「赛季奇遇」标识徽章：赛季 + 形态角色，悬浮显示触发条件与出现地点 */
+function seasonTag(p){
+  if (!p.season) return '';
+  const m = SEASON_META[p.season] || {};
+  const tip = [`赛季奇遇 ${p.season} · ${m.label || ''}`, roleName(p.role),
+               m.trigger ? '触发：' + m.trigger : '', m.location ? '地点：' + m.location : '']
+              .filter(Boolean).join('\n');
+  return `<span class="tag enc ${seasonCls(p.season)}" title="${esc(tip)}">赛季奇遇 ${p.season}`
+       + `<span class="rl">${roleName(p.role)}</span></span>`;
+}
+
+/** 小窝面板中的赛季奇遇信息条（赛季名 / 触发条件 / 出现地点 / 专属道具） */
+function seasonBox(p){
+  if (!p.season) return '';
+  const m = SEASON_META[p.season] || {};
+  const row = (k, v) => v ? `<div class="kv"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>` : '';
+  return `<div class="seasonbox">
+    <div class="kv"><span class="k">所属赛季</span><span class="v"><b>${p.season} · ${esc(m.label || '')}</b>（${roleName(p.role)}）</span></div>
+    ${row('触发条件', m.trigger)}
+    ${row('出现地点', m.location)}
+    ${row('专属道具', m.ball)}
+    ${row('备忘', m.note)}
+  </div>`;
+}
+
+/* =========================================================================
+   1) 状态模型
+   ========================================================================= */
+const state = {
+  cols: 8,
+  rows: 6,
+  mode: 'orth',          // orth = 四向正交紧贴；diag = 八向（含斜角）
+  nests: [],             // {id, x, y, petId, sex:'M'|'F', shiny:bool}
+  seq: 0,
+  selected: null,
+  pickerFor: null,
+  recBaseId: null,       // 配对基准窝 id：最后被选中且已放入精灵的小窝（为其它窝选精灵时仍生效）
+  filter: { q:'', g:'all', sex:'all', b:'breed', season:'all', pair:'all' }   // b 默认 'breed'：默认不列出不能生蛋的精灵
+};
+
+function nextSeq(){ state.seq += 1; return state.seq; }
+
+function addNest(x, y, petId, sex){
+  if (state.nests.some(n => n.x === x && n.y === y)) return null;
+  const n = { id: 'n' + Math.random().toString(36).slice(2, 8), seq: nextSeq(), x, y, petId: petId || null, sex: sex || null, shiny: false };
+  state.nests.push(n);
+  return n;
+}
+function nestAt(x, y){ return state.nests.find(n => n.x === x && n.y === y) || null; }
+function bySeq(a, b){ return a.seq - b.seq; }
+function label(n){ return '小窝 #' + n.seq; }
+/** 只有真正“紧贴”的相邻小窝才可能触发爱心判定 */
+function adjacent(a, b){
+  if (a === b) return false;
+  const dx = Math.abs(a.x - b.x), dy = Math.abs(a.y - b.y);
+  if (dx > 1 || dy > 1) return false;
+  return state.mode === 'orth' ? (dx + dy === 1) : (dx + dy > 0);
+}
+
+/* =========================================================================
+   2) 规则引擎：对一个「相邻配对」逐条判定
+   ========================================================================= */
+/**
+ * @returns {{
+ *   nests:[nest,nest], state:'ok'|'bad'|'pending',
+ *   checks:Array<{name:string, ok:boolean, why:string}>,
+ *   output?:{...}, fixes:string[], canBreed:boolean
+ * }}
+ */
+function evaluatePair(a, b){
+  const pa = a.petId ? PETMAP[a.petId] : null;
+  const pb = b.petId ? PETMAP[b.petId] : null;
+  const checks = [];
+  const fixes = [];
+
+  // ---- R1 位置：相邻紧贴 ----
+  const modeText = state.mode === 'orth'
+    ? `坐标 (${a.x},${a.y}) 与 (${b.x},${b.y})，共边紧贴、间距 0 格`
+    : `坐标 (${a.x},${a.y}) 与 (${b.x},${b.y})，间距 ≤1 格（含斜角贴合）`;
+  checks.push({ name: '① 小窝紧贴相邻', ok: true, why: modeText + ' —— 满足生蛋前置条件' });
+
+  // ---- R2 入住完整 ----
+  const both = !!(pa && pb);
+  let liveText;
+  if (both) liveText = `${pa.title}（${a.sex === 'M' ? '雄' : a.sex === 'F' ? '雌' : '未定性别'}）↔ ${pb.title}（${b.sex === 'M' ? '雄' : b.sex === 'F' ? '雌' : '未定性别'}）`;
+  else liveText = `${!pa ? label(a) + ' 为空窝' : ''}${(!pa && !pb) ? '，' : ''}${!pb ? label(b) + ' 为空窝' : ''}`;
+  checks.push({ name: '② 两只小窝均已入住', ok: both, why: liveText });
+  if (!both) {
+    if (!pa) fixes.push(`在 ${label(a)} 放入一只精灵`);
+    if (!pb) fixes.push(`在 ${label(b)} 放入一只精灵`);
+  }
+
+  // ---- R3 性别：一公一母 ----
+  let sexOk = false, sexWhy = '';
+  if (both) {
+    const sa = effSex(a), sb = effSex(b);
+    if (sa === 'X' || sb === 'X') {
+      const noSex = sa === 'X' ? pa : pb;
+      sexWhy = `「${noSex.title}」为无性别精灵，无法参与配对`;
+      fixes.push(`把「${noSex.title}」换成有性别的精灵`);
+    } else if (!sa || !sb) {
+      sexWhy = `${!sa ? label(a) : label(b)} 尚未确定性别（需明确指定雄性或雌性）`;
+      fixes.push('为未定性别的小窝选择「雄」或「雌」');
+    } else if (sa === sb) {
+      const locked = (sa === 'F') ? [pa, pb].find(p => sexAvail(p) === 'F') : null;
+      sexWhy = `两只都是${sa === 'M' ? '雄性' : '雌性'}，同性无法生蛋（游戏内会提示“吵架”）`;
+      if (locked) {
+        sexWhy += `；其中「${locked.title}」为仅雌性精灵，只能作为母本`;
+        fixes.push(`把「${locked.title}」换成可提供雄性的同蛋组精灵`);
+      } else {
+        fixes.push(`把 ${label(sa === 'M' ? b : a)} 改为${sa === 'M' ? '雌性' : '雄性'}，或换一只异性精灵`);
+      }
+    } else {
+      sexOk = true;
+      sexWhy = `${sa === 'M' ? pa.title : pb.title}（雄）× ${sa === 'F' ? pa.title : pb.title}（雌）—— 满足一公一母`;
+      if (genderMissing(pa) || genderMissing(pb)){
+        sexWhy += `（${genderMissing(pa) && genderMissing(pb) ? '两只' : '「' + (genderMissing(pa) ? pa.title : pb.title) + '」'}的性别比例 wiki 未录入，按公母均可处理）`;
+      }
+    }
+  } else {
+    sexWhy = '需先放入精灵才能判定性别';
+  }
+  checks.push({ name: '③ 性别一公一母', ok: sexOk, why: sexWhy });
+
+  // ---- R4 「未发现」蛋组禁繁育 ----
+  let uOk = false, uWhy = '需先放入精灵才能判定蛋组';
+  if (both) {
+    const ua = unknownOnly(pa);
+    const ub = unknownOnly(pb);
+    const bad = [];
+    if (ua) bad.push(`「${pa.title}」蛋组为「未发现」`);
+    if (ub) bad.push(`「${pb.title}」蛋组为「未发现」`);
+    uOk = bad.length === 0;
+    uWhy = uOk
+      ? `双方均不属于「未发现」组（${realGroups(pa).map(gName).join('·')} / ${realGroups(pb).map(gName).join('·')}）`
+      : bad.join('；') + ' —— 战令宠、团本宠、翼王、帕尔、迪莫等禁止繁育';
+    if (!uOk) fixes.push('「未发现」组精灵无法生蛋，请整体替换为可繁育精灵');
+  }
+  checks.push({ name: '④ 非「未发现」蛋组', ok: uOk, why: uWhy });
+
+  // ---- R5 蛋组交集 ----
+  let gOk = false, gWhy = '需先放入精灵才能判定蛋组';
+  let shared = [];
+  if (both) {
+    shared = realGroups(pa).filter(g => realGroups(pb).includes(g));
+    gOk = shared.length > 0;
+    const ga = realGroups(pa).map(gName), gb = realGroups(pb).map(gName);
+    if (gOk) {
+      gWhy = `共享蛋组「${shared.map(gName).join(' / ')}」` +
+        ((ga.length + gb.length > shared.length * 2) ? ' —— 双蛋组精灵满足其一即可配对' : ' —— 蛋组一致');
+    } else {
+      gWhy = `${pa.title}：${ga.join('·') || '无'} ｜ ${pb.title}：${gb.join('·') || '无'} —— 无交集，存在生殖隔离`;
+      fixes.push(`把其中一只换成 ${gb.length ? '「' + gb.join('」或「') + '」' : ''} 组的精灵，或反过来换成 ${ga.join('·')} 组`);
+    }
+  }
+  checks.push({ name: '⑤ 蛋组相同（有交集）', ok: gOk, why: gWhy });
+
+  // ---- 汇总 ----
+  const pending = !both || !a.sex || !b.sex;
+  const ok = !pending && sexOk && uOk && gOk;
+  let output = null;
+  if (ok) {
+    const mother = effSex(a) === 'F' ? { nest: a, pet: pa } : { nest: b, pet: pb };
+    const father = effSex(a) === 'M' ? { nest: a, pet: pa } : { nest: b, pet: pb };
+    output = {
+      child: mother.pet,                     // 母系定种
+      mother, father,
+      groups: shared,
+      shinyBoost: (a.shiny ? 1 : 0) + (b.shiny ? 1 : 0)
+    };
+  }
+  return { nests: [a, b], state: ok ? 'ok' : (pending ? 'pending' : 'bad'), checks, fixes, output };
+}
+
+/* ---------- 全局计算 ---------- */
+function computeAll(){
+  const pairs = [];
+  const ns = state.nests;
+  for (let i = 0; i < ns.length; i++){
+    for (let j = i + 1; j < ns.length; j++){
+      if (adjacent(ns[i], ns[j])) pairs.push(evaluatePair(ns[i], ns[j]));
+    }
+  }
+  const okPairs = pairs.filter(p => p.state === 'ok');
+  const pairCountOf = {};
+  pairs.forEach(p => p.nests.forEach(n => { pairCountOf[n.id] = (pairCountOf[n.id] || 0) + 1; }));
+  // 孤立小窝（与任何小窝都不紧贴）
+  const isolated = ns.filter(n => !pairCountOf[n.id]);
+  return { pairs, okPairs, isolated, pairCountOf };
+}
+
+/* =========================================================================
+   2.5) 配对推荐引擎
+   —— 以「已放入精灵的小窝」为配对基准：小窝面板给出基准标记与画布 ★ 角标；
+      精灵选择器内做实时推荐（可配对优先排序 + 角标 + 一键筛选）。
+   复用规则引擎的 R3 性别 / R4 未发现组 / R5 蛋组交集；位置条件单独标注（是否紧贴）。
+   基准小窝若尚未指定性别，按「基准做母本」自动指派（母系定种 → 子代即基准精灵）。
+   ========================================================================= */
+
+/** 当前配对基准：最后被选中且已放入精灵的小窝（recBaseId 记忆）。
+ *  @param {string} [excludeId] 排除的小窝（选择器场景排除正在选的窝自己） */
+function recBase(excludeId){
+  const tryNest = id => {
+    const n = id && state.nests.find(m => m.id === id);
+    if (!n || !n.petId) return null;
+    const p = PETMAP[n.petId];
+    return p ? { nest: n, pet: p } : null;
+  };
+  return tryNest(state.recBaseId && state.recBaseId !== excludeId ? state.recBaseId : null)
+      || tryNest(state.selected && state.selected !== excludeId ? state.selected : null);
+}
+
+/** 显式选中某个已放精灵的小窝时，把它设为配对基准（选择器内放入精灵不会顶掉已有基准） */
+function setRecBase(n){
+  if (n && n.petId && PETMAP[n.petId]) state.recBaseId = n.id;
+}
+
+/**
+ * 结构性配对判定（暂不看位置）：候选精灵与基准能否成功生蛋。
+ * @returns {null|{shared:number[], baseSex:'M'|'F', candSex:'M'|'F'}}
+ */
+function pairFeasible(base, cand){
+  if (!base || !cand) return null;
+  const bp = base.pet;
+  if (unknownOnly(bp) || unknownOnly(cand)) return null;              // R4 未发现组禁繁育
+  const aAv = sexAvail(bp), cAv = sexAvail(cand);
+  if (aAv === '' || cAv === '') return null;                          // 无性别无法配对
+  const shared = realGroups(bp).filter(g => realGroups(cand).includes(g));
+  if (!shared.length) return null;                                    // R5 蛋组交集
+  const cur = effSex(base.nest);                                      // R3 基准已指定性别？
+  if (cur === 'M') return (cAv === 'MF' || cAv === 'F') ? { shared, baseSex: 'M', candSex: 'F' } : null;
+  if (cur === 'F') return (cAv === 'MF') ? { shared, baseSex: 'F', candSex: 'M' } : null;
+  return cAv === 'MF' ? { shared, baseSex: 'F', candSex: 'M' }        // 基准优先当母本
+       : cAv === 'F'  ? { shared, baseSex: 'M', candSex: 'F' } : null;
+}
+
+/** 推荐池（按「基准精灵 + 基准性别」缓存）。画布上每个空窝都要问一次推荐池，
+ *  而每次计算需要遍历全库全部精灵 → 用一张小表缓存多个基准，避免重复计算拖慢渲染。 */
+const _recCache = new Map();
+function recPool(base){
+  const key = base.pet.id + '|' + effSex(base.nest);
+  const hit = _recCache.get(key);
+  if (hit) return hit;
+  const bg = realGroups(base.pet);
+  const list = [];
+  PETS.forEach(p => {
+    const f = pairFeasible(base, p);
+    if (!f) return;
+    const rank = Math.min(...f.shared.map(g => { const i = bg.indexOf(g); return i < 0 ? 99 : i; }));
+    list.push({ pet: p, shared: f.shared, baseSex: f.baseSex, candSex: f.candSex, rank });
+  });
+  list.sort((a, b) => a.rank - b.rank
+    || (a.pet.stage || 1) - (b.pet.stage || 1)
+    || String(a.pet.no).localeCompare(String(b.pet.no)));
+  if (_recCache.size > 16) _recCache.clear();
+  _recCache.set(key, list);
+  return list;
+}
+
+/* ---- 一键补位：方案计算 ------------------------------------------------
+   对每个空窝，找一个「能跟它所有紧贴邻居都配对成功」的精灵（同蛋组 + 一公一母）。
+   计算在影子副本上模拟逐个补位（后面的空窝能看见前面刚补好的邻居），但**不改动 state**，
+   因此画布上的 ★ 角标与实际点击后的结果完全一致。
+   候选来源与选择器推荐同源（pairFeasible → recPool），排序规则也一致。
+   补不出来的空窝保持为空 —— 宁可留空，也不制造「配对失败」。 */
+let _fillPlan = null, _fillKey = '';
+function fillPlan(){
+  const realBase = recBase();
+  const sig = state.nests.map(n => n.id + ':' + (n.petId || '-') + ':' + (n.sex || '-')).join(',')
+            + '|' + state.mode + '|' + (realBase ? realBase.nest.id : '-');
+  if (_fillPlan && _fillKey === sig) return _fillPlan;
+
+  const plan = { fills: [], skipped: [], sexFix: [], baseId: realBase ? realBase.nest.id : null, pairedWithBase: 0 };
+  _fillPlan = plan; _fillKey = sig;
+  const empties = state.nests.filter(n => !n.petId);
+  if (!empties.length || !state.nests.some(n => n.petId && PETMAP[n.petId])) return plan;
+
+  // 影子副本：只保留补位判定用得到的字段
+  const shadow = state.nests.map(n => ({ id: n.id, seq: n.seq, x: n.x, y: n.y, petId: n.petId, sex: n.sex }));
+  const byId = id => shadow.find(m => m.id === id) || null;
+  const adj = (a, b) => {
+    if (a === b) return false;
+    const dx = Math.abs(a.x - b.x), dy = Math.abs(a.y - b.y);
+    if (dx > 1 || dy > 1) return false;
+    return state.mode === 'orth' ? (dx + dy === 1) : (dx + dy > 0);
+  };
+  const asBase = n => ({ nest: n, pet: PETMAP[n.petId] });
+  const setSexIfOpen = (n, s) => {
+    if (s && n && sexAvail(PETMAP[n.petId]) === 'MF' && effSex(n) === null) n.sex = s;
+  };
+
+  // 基准：显式基准 → 当前选中窝 → 最后一个已放精灵的小窝（沿用页面既有习惯）
+  let baseShadow = realBase ? { nest: byId(realBase.nest.id) || realBase.nest, pet: realBase.pet } : null;
+  if (!baseShadow){
+    const filled = shadow.filter(n => n.petId && PETMAP[n.petId]).sort(bySeq);
+    const last = filled[filled.length - 1];
+    if (last) baseShadow = asBase(last);
+  }
+  if (!baseShadow) return plan;
+  plan.baseId = baseShadow.nest.id;
+
+  const used = {};                                    // 同一参考基准下不重复补同一只精灵
+  empties.sort(bySeq).forEach(t => {
+    const tn = byId(t.id); if (!tn || tn.petId) return;
+    const nb = shadow.filter(m => m.petId && PETMAP[m.petId] && adj(m, tn)).sort(bySeq);
+    const srcs = [];
+    if (baseShadow.nest !== tn && adj(baseShadow.nest, tn)) srcs.push(baseShadow);
+    nb.forEach(m => { const s = asBase(m); if (!srcs.includes(s)) srcs.push(s); });
+    if (!srcs.length) srcs.push(baseShadow);          // 孤立空窝：按全局基准补，之后拖到基准旁即可生蛋
+    let pick = null;
+    for (const src of srcs){
+      const pool = recPool(src);
+      const bag = used[src.nest.id] || (used[src.nest.id] = new Set());
+      for (let i = 0; i < Math.min(pool.length, 60); i++){
+        const c = pool[i];
+        if (bag.has(c.pet.id)) continue;
+        // 候选要入住的性别由参考基准定死（c.candSex）。与每个邻居判定时必须是同一个性别 ——
+        // 否则会出现「同一只 MF 精灵被同时要求当父本和母本」，必然有一对失败。
+        if (nb.every(m => { const f = pairFeasible(asBase(m), c.pet); return !!f && f.candSex === c.candSex; })){
+          pick = { c, src, bag }; break;
+        }
+      }
+      if (pick) break;
+    }
+    if (!pick){ plan.skipped.push({ id: tn.id, seq: tn.seq, why: nb.length ? 'conflict' : 'no-base' }); return; }
+    pick.bag.add(pick.c.pet.id);
+    const srcBefore = pick.src.nest.sex;
+    tn.petId = pick.c.pet.id;
+    tn.sex = pick.c.candSex;
+    nb.forEach(m => { const f = pairFeasible(asBase(m), pick.c.pet); if (f) setSexIfOpen(m, f.baseSex); });
+    const fb = pairFeasible(baseShadow, pick.c.pet);  if (fb) setSexIfOpen(baseShadow.nest, fb.baseSex);
+    plan.fills.push({
+      id: tn.id, seq: tn.seq, pet: pick.c.pet, sex: pick.c.candSex,
+      srcId: pick.src.nest.id, srcPet: pick.src.pet, nb: nb.length,
+      adjacentBase: adj(baseShadow.nest, tn),
+      baseSexBefore: srcBefore
+    });
+    if (adj(baseShadow.nest, tn)) plan.pairedWithBase++;
+  });
+
+  // 需要同步到真实 state 的性别补齐（含基准「母系定种」）
+  shadow.forEach(s => {
+    const r = state.nests.find(n => n.id === s.id);
+    if (r && s.sex !== r.sex) plan.sexFix.push({ id: s.id, sex: s.sex });
+  });
+  return plan;
+}
+
+/** 该窝当前精灵「为什么不能配对」的可读原因（用于提示） */
+function recWhyNot(base, n){
+  const p = n.petId ? PETMAP[n.petId] : null;
+  if (!p) return '空窝，还没有放入精灵';
+  const rs = [];
+  if (unknownOnly(p)) rs.push(`「${p.title}」属于「未发现」蛋组，禁止繁育`);
+  else {
+    if (sexAvail(p) === '') rs.push(`「${p.title}」无性别，无法参与配对`);
+    else {
+      const bs = effSex(base.nest), cs = effSex(n);
+      if (bs && cs && bs === cs) rs.push(`两只都是${bs === 'M' ? '雄性' : '雌性'}，需一公一母`);
+      else if (bs === 'F' && sexAvail(p) === 'F') rs.push('基准与候选都只能做母本（仅雌性），缺少父本');
+    }
+    if (!realGroups(base.pet).some(g => realGroups(p).includes(g)))
+      rs.push(`与「${base.pet.title}」无共享蛋组（${realGroups(p).map(gName).join('·') || '无'} vs ${realGroups(base.pet).map(gName).join('·')}），存在生殖隔离`);
+  }
+  return rs.join('；') || '未满足配对条件';
+}
+
+/* ---- 精灵选择器内的配对推荐：排序 + 角标 ---- */
+
+/** 给精灵列表按「可配对优先」排序：共享基准主蛋组 → 基础形态 → 图鉴序，不可配对的保持图鉴序垫底 */
+function recSortList(base, list){
+  const bg = realGroups(base.pet);
+  const rankOf = f => f ? Math.min(...f.shared.map(g => { const i = bg.indexOf(g); return i < 0 ? 99 : i; })) : 999;
+  return list
+    .map(p => ({ p, f: pairFeasible(base, p) }))
+    .sort((a, b) => ((a.f ? 0 : 1) - (b.f ? 0 : 1))
+      || (rankOf(a.f) - rankOf(b.f))
+      || (a.f ? ((a.p.stage || 1) - (b.p.stage || 1)) : 0)
+      || (PETS.indexOf(a.p) - PETS.indexOf(b.p)))
+    .map(x => x.p);
+}
+
+/** 选择器精灵项上的推荐角标：可配对 → ★ + 建议性别；不可配对 → ✕ + 原因 tooltip */
+function recTagHTML(base, p){
+  if (!base) return { f: null, html: '' };
+  const f = pairFeasible(base, p);
+  if (f){
+    const tip = `可与基准「${base.pet.title}」配对（${f.shared.map(gName).join(' / ')}），放入后自动设为${f.candSex === 'M' ? '雄性 ♂' : '雌性 ♀'}`;
+    return { f, html: `<span class="tag pairok" title="${esc(tip)}">★ 可配对 · 建议${f.candSex === 'M' ? '♂' : '♀'}</span>` };
+  }
+  const fake = { petId: p.id };
+  return { f: null, html: `<span class="tag" title="${esc(recWhyNot(base, fake))}">✕ 与基准不可配对</span>` };
+}
+
+/* =========================================================================
+   3) 渲染
+   ========================================================================= */
+const el = id => document.getElementById(id);
+const board = el('board'), cells = el('cells'), overlay = el('overlay'), underlay = el('underlay');
+
+function renderAll(){
+  renderBoard();
+  renderNestPanel();
+  renderReport();
+}
+
+/* ---- 画布 ---- */
+function renderBoard(){
+  fitCell();                                   // 手机端按容器宽度自适应格子
+  const W = state.cols * CELL, H = state.rows * CELL;
+  board.classList.toggle('sm', CELL <= 54);    // 小格子时分级压缩窝内元素
+  board.classList.toggle('xs', CELL <= 46);
+  board.style.width = W + 'px';
+  board.style.height = H + 'px';
+
+  // 格子
+  cells.style.gridTemplateColumns = `repeat(${state.cols}, ${CELL}px)`;
+  cells.style.gridTemplateRows = `repeat(${state.rows}, ${CELL}px)`;
+  if (cells.childElementCount !== state.cols * state.rows){
+    cells.innerHTML = '';
+    for (let y = 0; y < state.rows; y++){
+      for (let x = 0; x < state.cols; x++){
+        const c = document.createElement('div');
+        c.className = 'cellbox';
+        c.dataset.x = x; c.dataset.y = y;
+        cells.appendChild(c);
+      }
+    }
+  }
+
+  // 清掉旧的小窝 DOM
+  board.querySelectorAll('.nest').forEach(e => e.remove());
+
+  const res = computeAll();
+  const base = recBase();                     // 配对推荐基准（用于画布角标）
+  const plan = fillPlan();                    // 一键补位方案（空窝上先标出会补进什么）
+  const planMap = {};
+  plan.fills.forEach(f => planMap[f.id] = f);
+  const skipMap = {};
+  plan.skipped.forEach(s => skipMap[s.id] = s);
+  const statusOfNest = {};
+  res.pairs.forEach(p => p.nests.forEach(n => {
+    const cur = statusOfNest[n.id];
+    if (cur === 'ok' || p.state === 'ok') statusOfNest[n.id] = 'ok';
+    else if (!cur) statusOfNest[n.id] = p.state;
+  }));
+
+  state.nests.forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'nest' + (n.petId ? '' : ' empty')
+      + (statusOfNest[n.id] === 'ok' ? ' paired' : '')
+      + (state.selected === n.id ? ' sel' : '');
+    d.style.left = (n.x * CELL + 3) + 'px';
+    d.style.top = (n.y * CELL + 3) + 'px';
+    d.style.width = (CELL - 6) + 'px';
+    d.style.height = (CELL - 6) + 'px';
+    d.dataset.nid = n.id;
+
+    const p = n.petId ? PETMAP[n.petId] : null;
+    // 可与配对基准成功配对的窝 → 星标角标（★ = 推荐配对建议；❤ 保留给画布上的「判定可生蛋」徽章，避免混淆）
+    let recDot = '';
+    if (base && n !== base.nest && p){
+      const f = pairFeasible(base, p);
+      if (f) recDot = `<span class="stardot" title="可与基准「${esc(base.pet.title)}」配对成功${adjacent(base.nest, n) ? '' : '（需先紧贴摆放）'}">★</span>`;
+    } else if (!p && planMap[n.id]){
+      const f = planMap[n.id];
+      recDot = `<span class="stardot ghost" title="空窝 · 一键补位将放入「${esc(f.pet.title)}」（与「${esc(f.srcPet.title)}」配对成功，自动配好一公一母）">★</span>`;
+    }
+    if (recDot.indexOf('ghost') >= 0) d.classList.add('fillable');
+    if (!p && skipMap[n.id])
+      d.title = '空窝 · 两侧精灵性别互斥，一键补位补谁都会跟另一边配对失败（挪开一格再补）';
+    d.innerHTML = `
+      <span class="seq">#${n.seq}</span>
+      ${n.sex ? `<span class="sex ${n.sex}">${n.sex === 'M' ? '♂' : '♀'}</span>` : ''}
+      ${p ? `
+        ${iconHTML(p)}
+        <span class="pname${p.title.length > 5 ? ' long' : ''}" style="color:${typeColor(p)}">${esc(p.title)}</span>
+        <span class="gbar">${realGroups(p).map(g => `<i class="gdot" style="background:${gColor(g)}" title="${gName(g)}"></i>`).join('')}${unknownOnly(p) ? '<i class="av">未发现</i>' : ''}${p.season ? `<i class="av enc ${seasonCls(p.season)}" title="赛季奇遇 ${p.season} · ${SEASON_LABEL[p.season] || ''}（${roleName(p.role)}）">${p.season}</i>` : ''}</span>
+        ${n.shiny ? '<span class="spark" title="异色/炫彩个体">✦</span>' : ''}
+        ${recDot}
+      ` : `
+        <span class="empty-in"><span class="plus">＋</span>${planMap[n.id] ? '<b class="on">可补位</b>' : '空窝'}</span>
+        ${recDot}
+      `}
+    `;
+    d.addEventListener('contextmenu', e => { e.preventDefault(); removeNest(n); });
+    d.addEventListener('pointerdown', e => startDrag(e, n, d));
+    board.appendChild(d);
+  });
+
+  drawOverlay(res);
+}
+
+function drawOverlay(res){
+  const W = state.cols * CELL, H = state.rows * CELL;
+  [overlay, underlay].forEach(svg => {
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+  });
+  let lines = '', badges = '';
+  res.pairs.forEach(p => {
+    const [a, b] = p.nests;
+    const ax = a.x * CELL + CELL / 2, ay = a.y * CELL + CELL / 2;
+    const bx = b.x * CELL + CELL / 2, by = b.y * CELL + CELL / 2;
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    const diagonal = (Math.abs(a.x - b.x) + Math.abs(a.y - b.y)) > 1;   // 斜角贴合：连线穿过的区域没有卡片遮挡
+    const color = p.state === 'ok' ? '#4f46e5' : p.state === 'bad' ? '#b9bece' : '#d0b779';
+    if (diagonal){
+      lines += `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${color}" stroke-width="${p.state === 'ok' ? 3.4 : 2.4}"
+        ${p.state === 'ok' ? '' : 'stroke-dasharray="6 6"'} stroke-linecap="round" opacity="${p.state === 'ok' ? 0.9 : 0.85}"/>`;
+    }
+    const icon = p.state === 'ok' ? '❤' : p.state === 'bad' ? '✕' : '?';
+    const ring = p.state === 'ok' ? '#4f46e5' : p.state === 'bad' ? '#c9cedb' : '#dcc68f';
+    const ink = p.state === 'ok' ? '#4f46e5' : p.state === 'bad' ? '#9aa1b3' : '#a8720b';
+    // 小格子时徽章同步缩小，避免盖住窝内名字
+    const br = CELL <= 46 ? 8 : 11;
+    const bfs = CELL <= 46 ? 9.5 : 12.5;
+    badges += `<circle cx="${mx}" cy="${my}" r="${br}" fill="#fff" stroke="${ring}" stroke-width="2"/>`
+      + `<text x="${mx}" y="${my + bfs * 0.36}" text-anchor="middle" font-size="${bfs}" fill="${ink}">${icon}</text>`;
+  });
+  underlay.innerHTML = lines;
+  overlay.innerHTML = badges;
+}
+
+/* ---- 拖拽 ---- */
+let drag = null;
+function startDrag(e, n, node){
+  if (e.button === 2) return;
+  e.preventDefault();
+  // 注意：这里不能整块重绘，否则当前拖拽节点会被销毁
+  state.selected = n.id;
+  setRecBase(n);
+  board.querySelectorAll('.nest').forEach(x => x.classList.toggle('sel', x.dataset.nid === n.id));
+  renderNestPanel();
+  const rect = board.getBoundingClientRect();
+  drag = {
+    n, node,
+    ox: n.x, oy: n.y,
+    sx: e.clientX, sy: e.clientY,
+    bx: rect.left, by: rect.top,
+    moved: false
+  };
+  node.setPointerCapture(e.pointerId);
+  node.addEventListener('pointermove', onDragMove);
+  node.addEventListener('pointerup', endDrag);
+  node.addEventListener('pointercancel', endDrag);
+}
+function onDragMove(e){
+  if (!drag) return;
+  const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+  if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+  drag.moved = true;
+  drag.node.classList.add('dragging');
+  drag.node.style.left = (drag.ox * CELL + 3 + dx) + 'px';
+  drag.node.style.top = (drag.oy * CELL + 3 + dy) + 'px';
+}
+function endDrag(e){
+  if (!drag) return;
+  const d = drag; drag = null;
+  d.node.removeEventListener('pointermove', onDragMove);
+  d.node.removeEventListener('pointerup', endDrag);
+  d.node.removeEventListener('pointercancel', endDrag);
+  d.node.classList.remove('dragging');
+  if (d.moved){
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+    const nx = Math.max(0, Math.min(state.cols - 1, Math.round((d.ox * CELL + dx) / CELL)));
+    const ny = Math.max(0, Math.min(state.rows - 1, Math.round((d.oy * CELL + dy) / CELL)));
+    const occupied = state.nests.some(m => m !== d.n && m.x === nx && m.y === ny);
+    if (occupied || (nx === d.n.x && ny === d.n.y)){
+      renderAll();                       // 原位或占位 → 还原
+    } else {
+      d.n.x = nx; d.n.y = ny;
+      renderAll();
+    }
+  } else if (isPhone()){
+    // 手机端：轻点小窝即打开精灵选择器（拖动仍然是移动位置）
+    renderAll();
+    openPicker(d.n);
+  } else {
+    renderAll();
+  }
+}
+
+/* ---- 交互：放置 / 删除 ---- */
+cells.addEventListener('click', e => {
+  const t = e.target.closest('.cellbox');
+  if (!t) return;
+  const x = +t.dataset.x, y = +t.dataset.y;
+  if (nestAt(x, y)) return;
+  const n = addNest(x, y, null, null);
+  state.selected = n.id;
+  renderAll();
+});
+function removeNest(n){
+  state.nests = state.nests.filter(m => m !== n);
+  if (state.selected === n.id) state.selected = null;
+  renderAll();
+}
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){
+    const n = state.nests.find(m => m.id === state.selected);
+    if (n){ e.preventDefault(); removeNest(n); }
+  }
+  if (e.key === 'Escape'){ closePicker(); closeSave(); }
+});
+
+/* ---- 右侧小窝面板 ---- */
+function renderNestPanel(){
+  const box = el('nests');
+  el('nest-tip').textContent = state.nests.length + ' 个小窝';
+  const base = recBase();
+  const bb = el('basebar');
+  bb.innerHTML = base ? `
+    <div class="basebar">
+      ${iconHTML(base.pet)}
+      <span>配对基准：<b>${label(base.nest)} · ${esc(base.pet.title)}</b>
+        <span style="color:var(--ink-3)">（${effSex(base.nest) === 'M' ? '♂ 雄性' : effSex(base.nest) === 'F' ? '♀ 雌性' : '性别待定'}）</span>
+        —— 打开其它小窝的选择器看推荐，或点上方「✦ 一键补位」自动补空窝</span>
+      <button class="clr" data-act="recoff" title="清除当前选中的小窝，退出配对推荐、恢复原有列表展示">退出推荐</button>
+    </div>` : '';
+  if (!state.nests.length){
+    box.innerHTML = '<div class="empty-state">还没有小窝。<br>在左侧网格点击空白格子即可放置。</div>';
+    return;
+  }
+  const res = computeAll();
+  const statusOfNest = {};
+  res.pairs.forEach(p => p.nests.forEach(n => {
+    if (statusOfNest[n.id] === 'ok') return;
+    statusOfNest[n.id] = p.state === 'ok' ? 'ok' : (statusOfNest[n.id] || p.state);
+  }));
+  box.innerHTML = state.nests.slice().sort(bySeq).map(n => {
+    const p = n.petId ? PETMAP[n.petId] : null;
+    const av = p ? sexAvail(p) : 'MF';
+    const st = statusOfNest[n.id];
+    const isBase = !!(base && n === base.nest);
+    return `
+    <div class="ncard${state.selected === n.id ? ' sel' : ''}${isBase ? ' base' : ''}" data-ncard="${n.id}">
+      <div class="ncard-top">
+        <div class="id">${label(n)}<span class="pos">· 格子 (${n.x}, ${n.y})</span></div>
+        <div class="acts">
+          ${isBase ? '<span class="tag base" title="该窝已被选中为配对推荐基准">★基准</span>' : ''}
+          ${st === 'ok' ? '<span class="tag ok">已配对成功</span>' : (st ? '<span class="tag bad">配对失败</span>' : '<span class="tag warn">未紧贴</span>')}
+          <button class="mini" data-act="clear" data-id="${n.id}">清空</button>
+          <button class="mini" data-act="del" data-id="${n.id}">移除</button>
+        </div>
+      </div>
+      <div class="pickrow">
+        <div class="petchip" data-act="pick" data-id="${n.id}">
+          ${iconHTML(p)}
+          <span class="txt">
+            ${p ? `<b>${esc(p.title)}</b><small>NO.${esc(p.no)} · ${esc(p.types.join('·') || '—')}${p.form ? ' · ' + esc(p.form) : ''}</small>`
+                : `<b class="ph">点击选择精灵</b><small>默认只列 ${BREED_POOL_N} 只可生蛋精灵</small>`}
+          </span>
+        </div>
+        <div class="sexseg">
+          <button data-act="sex" data-id="${n.id}" data-s="M" class="${n.sex === 'M' ? 'on' : ''}" ${(!p || av === 'F' || av === '') ? 'disabled' : ''}>♂</button>
+          <button data-act="sex" data-id="${n.id}" data-s="F" class="${n.sex === 'F' ? 'on' : ''}" ${(!p || av === '') ? 'disabled' : ''}>♀</button>
+        </div>
+      </div>
+      ${p ? `
+      <div class="tagsline">
+        ${realGroups(p).map(g => `<span class="gb" style="border-color:${gColor(g)}66;color:${gColor(g)}">${gName(g)}</span>`).join('')}
+        ${seasonTag(p)}
+        ${unknownOnly(p) ? '<span class="tag bad">未发现组 · 不可繁育</span>' : ''}
+        ${p.stage ? `<span class="tag">${['','一阶','二阶','三阶','四阶'][p.stage] || ''}</span>` : ''}
+        ${p.shiny ? '<span class="tag">图鉴有异色</span>' : ''}
+      </div>` : ''}
+      ${p && p.season ? seasonBox(p) : ''}
+      ${p && av !== '' ? `
+      <label class="shinyflex"><input type="checkbox" data-act="shiny" data-id="${n.id}" ${n.shiny ? 'checked' : ''}> 该个体为异色 / 炫彩（提升子代稀有蛋概率）</label>` : ''}
+      ${p && av === '' ? '<div class="tagsline"><span class="tag bad">无性别 · 无法参与配对</span></div>' : ''}
+      ${p && av === 'F' ? '<div class="tagsline"><span class="tag warn">仅雌性 · 只能作为母本</span></div>' : ''}
+      ${p && genderMissing(p) ? '<div class="tagsline"><span class="tag" title="wiki 尚未录入该精灵的性别比例。实测游戏内赛季奇遇精灵有性别、可正常配对孵蛋，故默认公母均可。">wiki 未录性别 · 默认公母均可</span></div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+el('nests').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const n = state.nests.find(m => m.id === b.dataset.id);
+  if (!n) return;
+  const act = b.dataset.act;
+  // 打开选择器不转移配对基准 —— 保持「相对基准看推荐」的视角；基准只随画布点选/首个放入而更新
+  if (act === 'pick'){ state.selected = n.id; renderAll(); openPicker(n); }
+  if (act === 'del') removeNest(n);
+  if (act === 'clear'){ n.petId = null; n.sex = null; n.shiny = false; renderAll(); }
+  if (act === 'sex'){
+    n.sex = b.dataset.s;
+    if (n.petId && sexAvail(PETMAP[n.petId]) === 'F') n.sex = 'F';
+    renderAll();
+  }
+});
+el('nests').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset && t.dataset.act === 'shiny'){
+    const n = state.nests.find(m => m.id === t.dataset.id);
+    if (n){ n.shiny = t.checked; renderAll(); }
+  }
+});
+
+/* ---- 配对推荐：基准提示条（退出推荐 → 清除选中，恢复原有展示） ---- */
+el('basebar').addEventListener('click', e => {
+  if (!e.target.closest('[data-act="recoff"]')) return;
+  state.selected = null;
+  state.recBaseId = null;
+  renderAll();
+});
+
+/* ---- 一键补位：把方案落到 state 上 -------------------------------------- */
+function fillEmptyNests(){
+  if (!state.nests.length){ toast('还没有小窝，先在左侧网格点几个空位'); return; }
+  if (!state.nests.some(n => !n.petId)){ toast('画布上没有空窝需要补位'); return; }
+  if (!state.nests.some(n => n.petId && PETMAP[n.petId])){
+    toast('先把一只精灵放进小窝，才能按它一键补位'); return;
+  }
+  const plan = fillPlan();
+  if (!plan.fills.length){
+    const bn = plan.baseId ? state.nests.find(x => x.id === plan.baseId) : null;
+    const baseOk = !!(bn && bn.petId && PETMAP[bn.petId] && recPool({ nest: bn, pet: PETMAP[bn.petId] }).length);
+    toast(baseOk
+      ? '这些空窝两侧的精灵性别互斥，补谁都会跟另一边配对失败，已保留为空（把小窝挪开一格再补）'
+      : '参考精灵无法与任何精灵配对（属「未发现」蛋组等），换一个基准再试');
+    return;
+  }
+  plan.fills.forEach(f => {
+    const n = state.nests.find(x => x.id === f.id);
+    if (!n) return;
+    n.petId = f.pet.id;
+    n.sex = f.sex;                                   // 自动配成一公一母
+    clampSex(n);
+  });
+  plan.sexFix.forEach(x => {                         // 邻居/基准性别未定 → 按配对关系补齐
+    const n = state.nests.find(y => y.id === x.id);
+    if (n) n.sex = x.sex;
+  });
+  if (plan.baseId) state.recBaseId = plan.baseId;
+  renderAll();
+  const nearBase = plan.fills.filter(f => f.adjacentBase).length;
+  const nearAny = plan.fills.filter(f => !f.adjacentBase && f.nb > 0).length;
+  const lonely = plan.fills.filter(f => f.nb === 0).length;
+  const parts = [];
+  if (nearBase) parts.push(`${nearBase} 个紧贴基准，判定已生效`);
+  if (nearAny) parts.push(`${nearAny} 个已与紧邻精灵配对成功`);
+  if (lonely) parts.push(`${lonely} 个四周还没精灵，拖到精灵旁即可生蛋`);
+  const skip = plan.skipped.length ? ` · ${plan.skipped.length} 个空窝两侧性别互斥，已留空` : '';
+  toast(`已补位 ${plan.fills.length} 个空窝${parts.length ? ' · ' + parts.join(' · ') : ''}${skip}`);
+}
+el('fill').addEventListener('click', fillEmptyNests);
+
+/* ---- 预测报告 ---- */
+function renderReport(){
+  const res = computeAll();
+  const ok = res.okPairs.length;
+  const totalAdj = res.pairs.length;
+
+  el('s-nest').textContent = state.nests.length;
+  el('s-adj').textContent = totalAdj;
+  el('s-ok').textContent = ok;
+  el('s-egg').textContent = ok;
+
+  const v = el('verdict'), vt = el('vtext'), vs = el('vsub');
+  v.classList.remove('ok', 'bad');
+  if (state.nests.length < 2){
+    v.classList.add('bad'); vt.textContent = '小窝不足';
+    vs.textContent = '至少需要 2 个小窝紧贴摆放';
+  } else if (ok > 0){
+    v.classList.add('ok'); vt.textContent = '可以生蛋 ✓';
+    vs.textContent = `共 ${ok} 组有效配对，单轮最多产出 ${ok} 枚蛋`;
+  } else if (totalAdj === 0){
+    v.classList.add('bad'); vt.textContent = '无法生蛋';
+    vs.textContent = '没有小窝紧贴，需先相邻摆放';
+  } else {
+    v.classList.add('bad'); vt.textContent = '无法生蛋';
+    vs.textContent = `${totalAdj} 组相邻配对均未满足条件`;
+  }
+
+  el('report-tip').textContent = `相邻配对 ${totalAdj} 组 · 合格 ${ok} 组`;
+
+  // 孤立小窝提示
+  const iso = el('isolated');
+  if (res.isolated.length && state.nests.length > 1){
+    iso.innerHTML = `<div class="fixline" style="margin:0 0 12px">⚠️ ${res.isolated.map(n => `<b>${label(n)}</b>(${n.x},${n.y})`).join('、')} 没有与任何小窝紧贴，无法触发配对。${
+      res.isolated.map(n => {
+        let best = null;
+        state.nests.forEach(m => {
+          if (m === n) return;
+          const d = Math.max(Math.abs(m.x - n.x), Math.abs(m.y - n.y));
+          if (!best || d < best.d) best = { m, d };
+        });
+        return best ? `离 ${label(n)} 最近的是 ${label(best.m)}，间隔 ${best.d} 格` : '';
+      }).filter(Boolean).join('；')
+    }。把距离缩到 1 格即可。</div>`;
+  } else iso.innerHTML = '';
+
+  const grid = el('pairgrid');
+  el('pair-empty').style.display = res.pairs.length ? 'none' : 'block';
+
+  const order = { ok: 0, pending: 1, bad: 2 };
+  const sorted = res.pairs.slice().sort((a, b) => order[a.state] - order[b.state] || a.nests[0].seq - b.nests[0].seq);
+
+  grid.innerHTML = sorted.map(renderPairCard).join('');
+}
+
+function renderPairCard(p){
+  const [a, b] = p.nests;
+  const pa = a.petId ? PETMAP[a.petId] : null;
+  const pb = b.petId ? PETMAP[b.petId] : null;
+  const pillText = p.state === 'ok' ? '可以生蛋' : p.state === 'pending' ? '待完善' : '无法生蛋';
+  const sxOf = n => n.sex === 'M' ? '♂' : n.sex === 'F' ? '♀' : '?';
+  const side = (n, p) => `<span class="whoside">
+      <span class="lb">${label(n)}</span>
+      ${iconHTML(p)}
+      <b>${p ? esc(p.title) : '空窝'}</b>
+      ${p && n.sex ? `<em class="sx ${n.sex}">${sxOf(n)}</em>` : ''}
+    </span>`;
+  const who = side(a, pa) + `<span class="whox">✕</span>` + side(b, pb);
+
+  const rules = p.checks.map(c => `
+    <li class="${c.ok ? 'r-ok' : 'r-no'}">
+      <span class="mark">${c.ok ? '✓' : '✗'}</span>
+      <span><b>${c.name}</b> <span class="why">— ${esc(c.why)}</span></span>
+    </li>`).join('');
+
+  let foot = '';
+  if (p.state === 'ok'){
+    const o = p.output;
+    foot = `
+      <div><b>预计产出</b>：子代种族 = <span class="kval">${esc(o.child.title)}</span>（母系定种，母本为 ${esc(o.mother.pet.title)}；父本 ${esc(o.father.pet.title)} 仅影响遗传）</div>
+      <div class="outgrid">
+        <span class="ochip">${iconHTML(o.child)}子代 NO.${esc(o.child.no)}</span>
+        <span class="ochip">蛋组 ${o.groups.map(gName).join(' / ')}</span>
+        <span class="ochip">生蛋耗时 0.5 ~ 20 小时</span>
+        <span class="ochip">选 20 小时档 · 必定出蛋</span>
+        ${o.shinyBoost ? `<span class="ochip">亲代异色/炫彩 ×${o.shinyBoost} → 稀有蛋概率提升</span>` : ''}
+      </div>`;
+  } else if (p.fixes.length){
+    foot = `<div><b>修复建议</b></div><div class="fixline">${p.fixes.map(f => '· ' + esc(f)).join('<br>')}</div>`;
+  } else {
+    foot = `<div>把两只小窝都放入精灵后，即可得出完整判定。</div>`;
+  }
+
+  return `
+  <div class="pair ${p.state}">
+    <div class="pair-h">
+      <span class="pill ${p.state}">${pillText}</span>
+      <div class="who"><div class="wholine">${who}</div><small>位置 (${a.x},${a.y}) 与 (${b.x},${b.y}) · ${state.mode === 'orth' ? '四向紧贴' : '八向含斜角'}</small></div>
+    </div>
+    <ul class="rules">${rules}</ul>
+    <div class="pair-f">${foot}</div>
+  </div>`;
+}
+
+/* =========================================================================
+   4) 精灵选择器
+   ========================================================================= */
+function openPicker(n){
+  state.pickerFor = n.id;
+  el('m-nest').textContent = '#N.' + n.seq;
+  el('q').value = state.filter.q;
+  state.filter.pair = 'all';          // 每次打开重置推荐筛选
+  renderPrefilter();
+  el('modal').classList.add('show');
+  document.body.style.overflow = 'hidden';   // 弹窗打开时锁定背景滚动（手机端尤其重要）
+  if (!isPhone()) el('q').focus();    // 手机端不自动聚焦，避免软键盘挡住精灵列表
+  renderPickerList();
+  syncFilterToggle();
+}
+function closePicker(){
+  el('modal').classList.remove('show');
+  state.pickerFor = null;
+  document.body.style.overflow = '';
+}
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closePicker));
+
+function buildFilters(){
+  const gc = {};
+  PETS.forEach(p => p.g.forEach(g => gc[g] = (gc[g] || 0) + 1));
+  const box = el('gfilters');
+  box.innerHTML = `<button class="fchip on" data-g="all">全部蛋组</button>` +
+    DB.groups.filter(g => gc[g.id]).map(g =>
+      `<button class="fchip" data-g="${g.id}"><span class="d" style="background:${g.color}"></span>${g.name} <span class="c">${gc[g.id]}</span></button>`
+    ).join('');
+  el('c-all').textContent = PETS.length;
+  // 页首数据源说明随数据自动更新（新增赛季精灵后无需手改文案）
+  if (el('hero-total')) el('hero-total').textContent = PETS.length;
+  if (el('hero-groups')) el('hero-groups').textContent = DB.groups.length;
+  el('c-mf').textContent = PETS.filter(p => sexAvail(p) === 'MF').length;
+  el('c-fonly').textContent = PETS.filter(p => sexAvail(p) === 'F').length;
+  el('c-none').textContent = PETS.filter(p => sexAvail(p) === '').length;
+  // 「可生蛋 / 不可生蛋」规则计数（默认规则：只列可生蛋精灵）
+  el('c-breedall').textContent = PETS.length;
+  el('c-breed').textContent = BREED_POOL_N;
+  el('c-unk').textContent = PETS.filter(unknownOnly).length;
+  // 赛季奇遇筛选行：数据驱动（DB.seasons），每赛季一个芯片
+  const seasonChip = s => {
+    const n = PETS.filter(p => p.season === s.id).length;
+    const tip = [`赛季奇遇 ${s.id} · ${s.label}`,
+                 s.ball ? `专属道具：${s.ball}` : '',
+                 s.trigger ? `触发：${s.trigger}` : '',
+                 s.location ? `地点：${s.location}` : ''].filter(Boolean).join('\n');
+    return `<button class="fchip" data-n="${s.id}" title="${esc(tip)}">赛季奇遇 ${s.id} ${esc(s.label)} <span class="c">${n}</span></button>`;
+  };
+  el('nfilters').innerHTML = `<button class="fchip on" data-n="all">全部来源 <span class="c">${PETS.length}</span></button>`
+    + (DB.seasons || []).map(seasonChip).join('');
+}
+
+buildFilters();
+
+/* ---- 选择器顶部的配对推荐栏（依赖基准，打开弹窗时刷新） ---- */
+function renderPrefilter(){
+  const box = el('prefilter');
+  const base = recBase(state.pickerFor);          // 排除正在选的窝自己
+  if (!base){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const n = recPool(base).length;
+  const baseTag = `<span class="ptag">${iconHTML(base.pet)}配对基准：<b>${esc(base.pet.title)}</b>（${effSex(base.nest) === 'M' ? '♂' : effSex(base.nest) === 'F' ? '♀' : '性别待定'}）</span>`;
+  if (!n){
+    box.style.display = 'flex';
+    box.innerHTML = baseTag + `<span class="ptip">基准「${esc(base.pet.title)}」无法与任何精灵配对（属「未发现」蛋组或无可配对对象），换基准后再试。</span>`;
+    return;
+  }
+  box.style.display = 'flex';
+  box.innerHTML = baseTag + `
+    <button class="fchip ${state.filter.pair === 'all' ? 'on' : ''}" data-p="all">全部精灵</button>
+    <button class="fchip ${state.filter.pair === 'ok' ? 'on' : ''}" data-p="ok">★ 仅看可配对 <span class="c">${n}</span></button>
+    <span class="ptip">已按可配对优先排序，放入后自动配好性别</span>`;
+}
+el('prefilter').addEventListener('click', e => {
+  const b = e.target.closest('[data-p]'); if (!b) return;
+  state.filter.pair = b.dataset.p;
+  renderPrefilter();
+  renderPickerList();
+});
+
+el('gfilters').addEventListener('click', e => {
+  const b = e.target.closest('[data-g]'); if (!b) return;
+  state.filter.g = b.dataset.g;
+  el('gfilters').querySelectorAll('.fchip').forEach(x => x.classList.toggle('on', x === b));
+  renderPickerList();
+});
+el('sfilters').addEventListener('click', e => {
+  const b = e.target.closest('[data-s]'); if (!b) return;
+  state.filter.sex = b.dataset.s;
+  el('sfilters').querySelectorAll('.fchip').forEach(x => x.classList.toggle('on', x === b));
+  renderPickerList();
+});
+/**
+ * 切换「可生蛋 / 全部精灵 / 不可生蛋」筛选规则。
+ * 默认值 'breed'：小窝入口只列出可生蛋的精灵，不能生蛋的（未发现蛋组等）需手动切换才展示。
+ */
+function setBreedFilter(val){
+  state.filter.b = val;
+  document.querySelectorAll('[data-b]').forEach(x => x.classList.toggle('on', x.dataset.b === val));
+  renderPickerList();
+}
+document.querySelectorAll('[data-b]').forEach(b => b.addEventListener('click', () => setBreedFilter(b.dataset.b)));
+el('nfilters').addEventListener('click', e => {
+  const b = e.target.closest('[data-n]'); if (!b) return;
+  state.filter.season = b.dataset.n;
+  el('nfilters').querySelectorAll('.fchip').forEach(x => x.classList.toggle('on', x === b));
+  renderPickerList();
+});
+el('q').addEventListener('input', e => { state.filter.q = e.target.value.trim(); renderPickerList(); });
+
+function renderPickerList(){
+  const f = state.filter;
+  const q = f.q.toLowerCase();
+  const base = recBase(state.pickerFor);          // 配对推荐基准（选择器场景排除当前窝）
+  let list = PETS.filter(p => {
+    if (f.g !== 'all' && !p.g.includes(+f.g)) return false;
+    if (f.season !== 'all' && p.season !== f.season) return false;
+    // 规则：默认（'breed'）只列可生蛋精灵；数据集异常（可生蛋为 0）时自动放行，避免筛空
+    if (f.b === 'breed' && BREED_POOL_N && !canBreed(p)) return false;
+    if (f.b === 'unknown' && !unknownOnly(p)) return false;
+    if (f.sex !== 'all'){
+      const av = sexAvail(p);
+      if (f.sex === 'mf' && av !== 'MF') return false;
+      if (f.sex === 'fonly' && av !== 'F') return false;
+      if (f.sex === 'none' && av !== '') return false;
+    }
+    if (q){
+      const sm = p.season ? (SEASON_META[p.season] || {}) : null;
+      const seasonHay = sm
+        ? ` 赛季奇遇 奇遇 ${p.season} ${sm.label || ''} ${sm.ball || ''} ${sm.trigger || ''} ${sm.location || ''} ${roleName(p.role)}`
+        : '';
+      const hay = (p.no + ' ' + p.name + ' ' + p.title + ' ' + p.form + ' ' + p.g.map(gName).join(' ')
+        + seasonHay).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  // 配对推荐：可配对优先排序 + 「仅看可配对」筛选
+  const recOf = p => base ? pairFeasible(base, p) : null;
+  if (base && f.pair === 'ok') list = list.filter(p => recOf(p));
+  if (base) list = recSortList(base, list);
+  // 无基准（小窝入口的初始状态）→ 按规则把「默认精灵」排到最前：
+  // 可生蛋 → 一阶 → 可雄可雌 → 图鉴编号（取代原来固定以 NO.001 迪莫打头的图鉴序）
+  let dft = (!base && !q) ? defaultPet(list) : null;
+  if (dft){
+    list.sort((a, b) => (defaultRank(a) - defaultRank(b)) || cmpCatalog(a, b));
+    dft = list[0];
+    // 只有在默认规则下、且首位确实可生蛋时才打「默认」角标
+    // （切到「不可生蛋 / 全部精灵」查看时不该把一个不能生蛋的精灵标成默认）
+    if (!canBreed(dft)) dft = null;
+  }
+  const okCount = base ? list.filter(p => recOf(p)).length : 0;
+  const hidden = (f.b === 'breed' && BREED_POOL_N && !q && f.g === 'all' && f.sex === 'all' && f.season === 'all')
+    ? (PETS.length - BREED_POOL_N) : 0;
+  el('m-count').textContent = `匹配到 ${list.length} 只精灵形态`
+    + (base ? ` · ★ 可配对 ${okCount} 只` : '')
+    + (hidden ? ` · 已按「可生蛋」默认规则隐藏 ${hidden} 只不能生蛋的精灵` : '');
+  syncFilterToggle();
+  if (!list.length){
+    // 空态兜底：区分「默认规则筛空」与「关键词/条件没命中」，前者给一键放宽入口
+    const filteredByBreed = f.b === 'breed' && BREED_POOL_N > 0 && !q;
+    el('plist').innerHTML = filteredByBreed
+      ? `<div class="pickempty">
+           <div class="pe-tx"><b>当前条件下没有可生蛋的精灵。</b><br>
+             这里默认不列出不能生蛋的精灵（如「未发现」蛋组的战令宠 / 团本宠 / 翼王 / 帕尔 / 迪莫等）。</div>
+           <button class="btn" data-b="all">显示全部精灵（含不能生蛋的）</button>
+         </div>`
+      : `<div class="pickempty">
+           <div class="pe-tx"><b>没有匹配的精灵。</b><br>换个关键词，或清掉部分筛选条件再试。</div>
+           <button class="btn" data-reset-filter>清空全部筛选条件</button>
+         </div>`;
+    return;
+  }
+  el('plist').innerHTML = list.map(p => {
+    const av = sexAvail(p);
+    const rec = recTagHTML(base, p);
+    const isDef = !!(dft && p === dft);
+    return `<button class="pitem${base && !rec.f ? ' nopair' : ''}${isDef ? ' isdefault' : ''}" data-id="${p.id}" title="${esc(p.title)} · ${esc(p.types.join('·'))}">
+      <div class="r1">
+        ${iconHTML(p)}
+        <span class="nmwrap">
+          <span class="nm">${esc(p.title)}${p.form && !p.title.includes(p.form) ? ` <small style="font-weight:400;color:var(--ink-3)">${esc(p.form)}</small>` : ''}</span>
+          <span class="ntypes">NO.${esc(p.no)} · ${esc(p.types.join('·') || '—')}${av === 'F' ? ' · 仅雌性' : av === '' ? ' · 无性别' : ''}</span>
+        </span>
+      </div>
+      <div class="r2">${realGroups(p).map(g => `<span class="gb" style="border-color:${gColor(g)}66;color:${gColor(g)}">${gName(g)}</span>`).join('')}${seasonTag(p)}${unknownOnly(p) ? '<span class="tag bad">未发现</span>' : ''}${p.shiny ? '<span class="tag warn">有异色</span>' : ''}${rec.html}${isDef ? '<span class="tag def">默认</span>' : ''}</div>
+    </button>`;
+  }).join('');
+}
+
+/** 清空选择器内的全部筛选条件，恢复默认规则（可生蛋） */
+function resetPickerFilter(){
+  state.filter = { q:'', g:'all', sex:'all', b:'breed', season:'all', pair:'all' };
+  el('q').value = '';
+  el('gfilters').querySelectorAll('.fchip').forEach(x => x.classList.toggle('on', x.dataset.g === 'all'));
+  el('sfilters').querySelectorAll('.fchip').forEach(x => x.classList.toggle('on', x.dataset.s === 'all'));
+  el('nfilters').querySelectorAll('.fchip').forEach(x => x.classList.toggle('on', x.dataset.n === 'all'));
+  document.querySelectorAll('[data-b]').forEach(x => x.classList.toggle('on', x.dataset.b === 'breed'));
+  renderPrefilter();
+  renderPickerList();
+}
+
+el('plist').addEventListener('click', e => {
+  // 空态兜底：动态按钮不在初始监听范围内，这里统一委托处理
+  const fb = e.target.closest('[data-b]');
+  if (fb){ setBreedFilter(fb.dataset.b); return; }
+  if (e.target.closest('[data-reset-filter]')){ resetPickerFilter(); return; }
+  const b = e.target.closest('.pitem'); if (!b) return;
+  const n = state.nests.find(m => m.id === state.pickerFor);
+  if (!n) return;
+  const p = PETMAP[b.dataset.id];
+  n.petId = p.id;
+  // 配对推荐：存在基准时按判定结果自动补齐双方性别（一公一母）
+  const base = recBase(n.id);
+  const f = base ? pairFeasible(base, p) : null;
+  if (f){
+    n.sex = f.candSex;
+    const av = sexAvail(base.pet);
+    if (av === 'MF') base.nest.sex = f.baseSex;
+  } else {
+    const av = sexAvail(p);
+    if (av === 'F') n.sex = 'F';
+    else if (av === 'MF') n.sex = n.sex || 'F';
+    else n.sex = null;
+  }
+  n.shiny = !!n.shiny;
+  clampSex(n);
+  // 尚无有效基准时，首个放入精灵的窝自动成为配对基准
+  const hasValidBase = state.recBaseId && state.nests.some(m => m.id === state.recBaseId && m.petId);
+  if (!hasValidBase) state.recBaseId = n.id;
+  closePicker();
+  renderAll();
+});
+
+/* =========================================================================
+   5) 工具栏：网格 / 相邻规则 / 模板 / 批量
+   ========================================================================= */
+(function initSelects(){
+  const c = el('cols'), r = el('rows');
+  for (let i = 4; i <= 14; i++) c.insertAdjacentHTML('beforeend', `<option value="${i}"${i === 8 ? ' selected' : ''}>${i} 列</option>`);
+  for (let i = 3; i <= 10; i++) r.insertAdjacentHTML('beforeend', `<option value="${i}"${i === 6 ? ' selected' : ''}>${i} 行</option>`);
+  c.addEventListener('change', () => {
+    state.cols = +c.value;
+    state.nests = state.nests.filter(n => n.x < state.cols);
+    renderAll();
+  });
+  r.addEventListener('change', () => {
+    state.rows = +r.value;
+    state.nests = state.nests.filter(n => n.y < state.rows);
+    renderAll();
+  });
+})();
+
+el('mode-seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state.mode = b.dataset.m;
+  el('mode-seg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  renderAll();
+});
+
+const TEMPLATES = {
+  line3:  { mode: null,   cells: [[-1, 0], [0, 0], [1, 0]] },   // 一公两母一字并排
+  twopair:{ mode: null,   cells: [[-2, 0], [-1, 0], [1, 0], [2, 0]] }, // 两组双窝并行
+  tri:    { mode: 'diag', cells: [[0, 0], [1, 0], [0, 1]] }        // 三角环绕（两两间距 1 格，含斜角）
+};
+document.querySelectorAll('[data-tpl]').forEach(b => b.addEventListener('click', () => {
+  const tpl = TEMPLATES[b.dataset.tpl];
+  if (!tpl) return;
+  if (tpl.mode === 'diag' && state.mode !== 'diag'){
+    state.mode = 'diag';
+    el('mode-seg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.m === 'diag'));
+  }
+  state.nests = []; state.selected = null; state.recBaseId = null; state.seq = 0;
+  const cx = Math.floor(state.cols / 2), cy = Math.floor(state.rows / 2);
+  tpl.cells.forEach(([dx, dy]) => addNest(cx + dx, cy + dy, null, null));
+  renderAll();
+}));
+
+/* 随机填充：给所有空窝分配「有机会配对成功」的精灵 */
+el('rand').addEventListener('click', () => {
+  if (!state.nests.length){ toast('还没有小窝，先在网格里放几个再随机填充'); return; }
+  const pool = PETS.filter(canBreed);      // 只用可生蛋精灵（与选择器默认规则一致）
+  const ordered = state.nests.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  // 有空窝 → 只填空窝（保留手动放好的精灵）；全满 → 整盘重新随机
+  // （此前只填空窝，统一蛋组填满后按钮就成了死键）
+  const empties = ordered.filter(n => !n.petId);
+  const targets = empties.length ? empties : ordered;
+  const touched = new Set(targets.map(n => n.id));     // 刚被随机过的窝，修复时只动这些
+  targets.forEach((n, i) => {
+    n.petId = pool[Math.floor(Math.random() * pool.length)].id;
+    n.sex = (i % 2 === 0) ? 'F' : 'M';
+    clampSex(n);
+  });
+  // 尝试修复：让相邻配对尽量同蛋组（只改刚随机出来的那一侧，不动用户手放的精灵）
+  for (let round = 0; round < 6; round++){
+    let fixed = 0;
+    computeAll().pairs.forEach(p => {
+      if (p.state === 'ok') return;
+      const [a, b] = p.nests;
+      const aT = touched.has(a.id), bT = touched.has(b.id);
+      if (!aT && !bT) return;                          // 两边都是手放的 → 不擅自改动
+      const victim = aT ? a : b, mate = aT ? b : a;
+      const pm = mate.petId ? PETMAP[mate.petId] : null;
+      if (!pm) return;
+      const target = realGroups(pm).length ? realGroups(pm) : [6];
+      const cand = PETS.filter(x => canBreed(x) && realGroups(x).some(g => target.includes(g)));
+      if (!cand.length) return;
+      const need = (effSex(mate) === 'M') ? 'F' : 'M';
+      const okCand = cand.filter(x => {
+        const av = sexAvail(x);
+        return need === 'F' ? (av === 'F' || av === 'MF') : av === 'MF';
+      });
+      if (!okCand.length) return;
+      const pick = okCand[Math.floor(Math.random() * okCand.length)];
+      victim.petId = pick.id;
+      victim.sex = need;
+      clampSex(victim);
+      fixed++;
+    });
+    if (!fixed) break;
+  }
+  renderAll();
+  toast(empties.length
+    ? `已随机填充 ${empties.length} 个空窝`
+    : `整盘已重新随机（${targets.length} 个窝，自动补成一公一母）`);
+});
+el('same').addEventListener('click', () => {
+  if (!state.nests.length){ toast('还没有小窝，先在网格里放几个再统一蛋组'); return; }
+  const cands = viableSameGroups();
+  if (!cands.length){ toast('没有可用的蛋组'); return; }
+  // 排除上一次用过的蛋组，保证连点两次必定换组（只剩一个候选时才复用）
+  const usable = cands.filter(g => g !== lastSameGid);
+  const pick = usable.length ? usable : cands;
+  const gid = pick[Math.floor(Math.random() * pick.length)];
+  const filled = fillSameGroup(gid);
+  if (!filled){ toast('该蛋组暂无可用的精灵，换一个再试'); return; }
+  lastSameGid = gid;
+  toast(`已统一为「${gName(gid)}」（${filled} 只可选，再点一次换组）`);
+});
+el('clear').addEventListener('click', () => {
+  state.nests = []; state.selected = null; state.recBaseId = null; state.seq = 0; renderAll();
+});
+
+/* =========================================================================
+   手机端适配：选择器筛选条件折叠 + 视口变化重算格子
+   （桌面端 .mfilter-toggle 隐藏、.mfilters{display:contents}，结构完全展开）
+   ========================================================================= */
+/** 当前生效的筛选条件摘要（用于折叠按钮上的提示文案） */
+function filterSummary(){
+  const f = state.filter, bits = [];
+  if (f.q) bits.push('搜索');
+  if (f.g !== 'all') bits.push(gName(+f.g));
+  if (f.sex !== 'all') bits.push({ mf:'可雄可雌', fonly:'仅雌性', none:'无性别' }[f.sex] || '性别');
+  if (f.b !== 'all') bits.push(f.b === 'breed' ? '可繁育' : '未发现组');
+  if (f.season !== 'all') bits.push('赛季 ' + f.season);
+  if (f.pair && f.pair !== 'all') bits.push('仅可配对');
+  return bits;
+}
+function syncFilterToggle(){
+  const btn = el('mfilter-toggle'), box = el('mfilters');
+  if (!btn || !box) return;
+  const on = box.classList.contains('open');
+  const bits = filterSummary();
+  btn.innerHTML = `${on ? '收起筛选' : '筛选条件'}`
+    + (bits.length ? ` <b style="font-weight:650">· ${bits.length} 项生效</b>` : '')
+    + `<span class="ar">${on ? '▴' : '▾'}</span>`;
+  const warn = !on && bits.length > 0;
+  btn.style.color = warn ? '#3f36cc' : '';
+  btn.style.borderColor = warn ? '#c9cdfb' : '';
+  btn.style.background = warn ? '#eef0fe' : '';
+}
+el('mfilter-toggle').addEventListener('click', () => {
+  el('mfilters').classList.toggle('open');
+  syncFilterToggle();
+});
+
+/* 视口变化（旋转屏幕 / 手机地址栏收起）→ 重算格子尺寸并重绘画布 */
+let _rszTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_rszTimer);
+  _rszTimer = setTimeout(() => { renderBoard(); }, 150);
+});
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => { renderBoard(); }, 260);
+});
+
+/* ---------- 工具 ---------- */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+}
+
+/* =========================================================================
+   6) 存档 / 分享
+   —— 存档：把当前画布存成一套「孵蛋布局」放本机 localStorage，可命名 / 载入 / 删除；
+      分享：把布局压成一行分享码塞进 URL 的 hash（#s=…），对方打开链接或把
+      分享码粘进「导入」框即可完整还原（小窝位置 / 精灵 / 性别 / 异色标记）。
+   分享码格式（纯 ASCII，不需要额外转义）：
+      E1.<cols>.<rows>.<o|d>.<窝>|<窝>|…
+      窝 = x,y,<精灵编号 base36 | ->,<m|f|->,<1|0>
+   ========================================================================= */
+const SAVE_KEY = 'egg-breeder.saves.v1';
+const SHARE_TAG = 'E1';
+const SAVE_MAX = 60;
+let _shareCode = '';
+
+/* ---- 布局 ⇄ 分享码 ---- */
+function layoutOf(){
+  return {
+    cols: state.cols, rows: state.rows, mode: state.mode,
+    nests: state.nests.slice().sort(bySeq).map(n => ({
+      x: n.x, y: n.y, p: n.petId || null, s: n.sex || null, k: !!n.shiny
+    }))
+  };
+}
+/** 精灵 id（pet_000004）→ 编号（4）→ base36（4）：单个精灵只占 1~2 个字符 */
+const pidEnc = id => parseInt(String(id).replace(/\D/g, ''), 10).toString(36);
+function pidDec(s){
+  const n = parseInt(s, 36);
+  if (!isFinite(n)) return null;
+  const id = 'pet_' + String(n).padStart(6, '0');
+  return PETMAP[id] ? id : null;
+}
+function encodeLayout(L){
+  const body = L.nests.map(n => [
+    n.x, n.y,
+    n.p ? pidEnc(n.p) : '-',
+    n.s === 'M' ? 'm' : n.s === 'F' ? 'f' : '-',
+    n.k ? 1 : 0
+  ].join(',')).join('|');
+  return [SHARE_TAG, L.cols, L.rows, L.mode === 'diag' ? 'd' : 'o', body].join('.');
+}
+/** 解析分享码 / 分享链接 → 布局对象；无法识别返回 null */
+function decodeLayout(raw){
+  if (!raw) return null;
+  let code = String(raw).trim();
+  const m = /[#&?]s=([^&\s#]+)/.exec(code);
+  if (m) code = m[1];
+  code = code.replace(/^#?s=/, '').trim();
+  if (!code) return null;
+  try{ code = decodeURIComponent(code); }catch(e){ /* 已是明文就原样用 */ }
+  const parts = code.split('.');
+  if (parts.length < 5 || parts[0] !== SHARE_TAG) return null;
+  const cols = parseInt(parts[1], 10), rows = parseInt(parts[2], 10);
+  if (!(cols >= 4 && cols <= 14 && rows >= 3 && rows <= 10)) return null;
+  const nests = [];
+  (parts[4] ? parts[4].split('|') : []).forEach(seg => {
+    const f = seg.split(',');
+    if (f.length < 5) return;
+    const x = parseInt(f[0], 10), y = parseInt(f[1], 10);
+    if (!(x >= 0 && x < cols && y >= 0 && y < rows)) return;
+    if (nests.some(n => n.x === x && n.y === y)) return;          // 同格重复 → 丢弃后者
+    const petId = f[2] === '-' ? null : pidDec(f[2]);
+    const sex = f[3] === 'm' ? 'M' : f[3] === 'f' ? 'F' : null;
+    nests.push({ x, y, p: petId, s: petId ? sex : null, k: f[4] === '1' });
+  });
+  if (!nests.length) return null;
+  return { cols, rows, mode: parts[3] === 'd' ? 'diag' : 'orth', nests };
+}
+
+/** 把布局套用到画布（保真：不擅自改写「未定性别」，只做规则强制的修正） */
+function applyLayout(L){
+  state.cols = L.cols; state.rows = L.rows; state.mode = L.mode;
+  state.seq = 0;
+  state.nests = L.nests.map(n => {
+    const x = {
+      id: 'n' + Math.random().toString(36).slice(2, 8), seq: nextSeq(),
+      x: n.x, y: n.y, petId: n.p || null, sex: n.s || null, shiny: !!n.k
+    };
+    const p = x.petId ? PETMAP[x.petId] : null;
+    if (!p){ x.petId = null; x.sex = null; x.shiny = false; return x; }
+    const av = sexAvail(p);
+    if (av === '') x.sex = null;                                   // 无性别
+    else if (av === 'F') x.sex = 'F';                              // 仅雌性，只能做母本
+    else if (x.sex !== 'M' && x.sex !== 'F') x.sex = null;         // 未定性别保持未定
+    return x;
+  });
+  state.selected = null; state.recBaseId = null; state.pickerFor = null;
+  syncToolbar();
+  renderAll();
+}
+/** 载入布局后把工具栏控件同步回 state（网格下拉 + 相邻规则分段） */
+function syncToolbar(){
+  el('cols').value = String(state.cols);
+  el('rows').value = String(state.rows);
+  el('mode-seg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.m === state.mode));
+}
+
+/* ---- 本机存档 ---- */
+function storageOK(){
+  try{ localStorage.setItem('__egg_probe__', '1'); localStorage.removeItem('__egg_probe__'); return true; }
+  catch(e){ return false; }
+}
+function readSaves(){
+  try{
+    const list = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]');
+    return Array.isArray(list) ? list.filter(s => s && s.id && s.code) : [];
+  }catch(e){ return []; }
+}
+function writeSaves(list){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(list)); return true; }
+  catch(e){ return false; }
+}
+function fmtTime(ts){
+  const d = new Date(ts), p = n => String(n).padStart(2, '0');
+  const hm = p(d.getHours()) + ':' + p(d.getMinutes());
+  return d.toDateString() === new Date().toDateString() ? '今天 ' + hm
+       : p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + hm;
+}
+/** 布局摘要：小窝数 / 可生蛋配对数 / 出现过的精灵（用于存档卡片展示） */
+function layoutSummary(L){
+  const eff = n => {
+    const p = n.p ? PETMAP[n.p] : null;
+    if (!p) return null;
+    const av = sexAvail(p);
+    if (av === '') return 'X';
+    if (av === 'F') return 'F';
+    return n.s || null;
+  };
+  const adjOf = (a, b) => {
+    const dx = Math.abs(a.x - b.x), dy = Math.abs(a.y - b.y);
+    return L.mode === 'orth' ? (dx + dy === 1) : (dx <= 1 && dy <= 1 && dx + dy > 0);
+  };
+  let ok = 0;
+  const ns = L.nests;
+  for (let i = 0; i < ns.length; i++){
+    for (let j = i + 1; j < ns.length; j++){
+      if (!adjOf(ns[i], ns[j])) continue;
+      const pa = ns[i].p ? PETMAP[ns[i].p] : null, pb = ns[j].p ? PETMAP[ns[j].p] : null;
+      if (!pa || !pb || unknownOnly(pa) || unknownOnly(pb)) continue;
+      const sa = eff(ns[i]), sb = eff(ns[j]);
+      if (!sa || !sb || sa === 'X' || sb === 'X' || sa === sb) continue;
+      if (!realGroups(pa).some(g => realGroups(pb).includes(g))) continue;
+      ok++;
+    }
+  }
+  return { n: ns.length, ok, pets: ns.map(x => x.p).filter(Boolean).slice(0, 8) };
+}
+
+/* ---- 分享链接 ---- */
+/** 手机版主程序跑在外壳的 iframe 里，分享要用外壳地址才是能打开的页面 */
+function buildShareURL(code){
+  let base = String(location.href || '').split('#')[0].split('?')[0];
+  try{
+    const top = window.top;
+    if (top && top !== window.self && top.location && top.location.href){
+      const th = String(top.location.href).split('#')[0].split('?')[0];
+      if (th) base = th;
+    }
+  }catch(e){ /* 跨域取不到就退回自身地址 */ }
+  const tail = (base.endsWith('/') || /\.html?$/i.test(base)) ? '' : '/';
+  return base + tail + '#s=' + code;
+}
+function isLocalFile(){ return location.protocol === 'file:'; }
+
+/* ---- 轻提示 / 复制 ---- */
+let _toastTimer = null;
+function toast(msg){
+  const t = el('toast'); if (!t) return;
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 1900);
+}
+function copyText(txt, okMsg, inputForManual){
+  const fallback = () => {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = txt; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, txt.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok){ toast(okMsg); return; }
+    }catch(e){ /* 走下面的手动兜底 */ }
+    if (inputForManual){ inputForManual.focus(); inputForManual.select(); }
+    toast('请长按选中后手动复制');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(() => toast(okMsg)).catch(fallback);
+  } else fallback();
+}
+
+/* ---- 面板 ---- */
+function syncShareBox(code, label){
+  _shareCode = code;
+  el('shareurl').value = buildShareURL(code);
+  el('share-note').textContent = label;
+  el('sharehint').innerHTML = isLocalFile()
+    ? '当前是本地文件（file://）打开，链接只在你这台电脑有效。<br>点「复制」得到的是<b>分享码</b>，发给对方后在网页版点「导入」粘贴即可还原。'
+    : '对方打开链接会自动还原这套布局（小窝位置、精灵、性别、异色标记全部一致）。也可以用「导入」粘贴别人发来的分享码。';
+}
+function renderSaves(){
+  const list = readSaves().slice().sort((a, b) => b.ts - a.ts);
+  const box = el('slist');
+  el('s-count').textContent = list.length
+    ? `共 ${list.length} 个存档 · 保存在本机浏览器，换设备不同步（跨设备传递请用分享链接）`
+    : '';
+  if (!list.length){
+    box.innerHTML = '<div class="sempty">还没有存档。<br>摆好一套布局后，在上方填个名字，点「保存当前布局」。<br>之后随时可以一键载入，或生成链接分享给别人。</div>';
+    return;
+  }
+  box.innerHTML = list.map(s => {
+    const L = decodeLayout(s.code);
+    const sum = L ? layoutSummary(L) : { n: s.n || 0, ok: s.ok || 0, pets: s.pets || [] };
+    const thumbs = sum.pets.map(pid => PETMAP[pid] ? iconHTML(PETMAP[pid]) : '').join('');
+    return `<div class="sitem">
+      <div class="top">
+        <span class="nm" title="${esc(s.name)}">${esc(s.name)}</span>
+        <span class="meta">${sum.n} 个小窝 · ${sum.ok} 组可生蛋 · ${fmtTime(s.ts)}</span>
+      </div>
+      <div class="thumbs">${thumbs || '<span class="meta" style="margin:0">空布局</span>'}</div>
+      <div class="acts">
+        <button class="pri" data-sact="load" data-sid="${esc(s.id)}">载入</button>
+        <button data-sact="share" data-sid="${esc(s.id)}">分享</button>
+        <button data-sact="rename" data-sid="${esc(s.id)}">改名</button>
+        <button class="danger" data-sact="del" data-sid="${esc(s.id)}">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function openSave(prefill){
+  closePicker();
+  el('savename').value = prefill ? '来自分享的布局' : '';
+  el('importcode').value = '';
+  renderSaves();
+  syncShareBox(encodeLayout(layoutOf()), '当前布局');
+  el('smodal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  if (prefill || !isPhone()){ try{ el('savename').focus(); }catch(e){} }
+}
+function closeSave(){
+  el('smodal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function saveCurrent(name){
+  if (!state.nests.length){ toast('还没有小窝，先在网格里放几个再保存'); return; }
+  if (!storageOK()){ toast('当前浏览器不允许本地存储，请改用「分享」链接保存'); return; }
+  const list = readSaves();
+  if (list.length >= SAVE_MAX){ toast(`最多保存 ${SAVE_MAX} 个存档，先删掉一些吧`); return; }
+  const L = layoutOf();
+  const sum = layoutSummary(L);
+  const item = {
+    id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    name: name || ('布局 · ' + fmtTime(Date.now())),
+    ts: Date.now(),
+    code: encodeLayout(L),
+    n: sum.n, ok: sum.ok, pets: sum.pets
+  };
+  list.push(item);
+  if (!writeSaves(list)){ toast('保存失败：本机存储空间不足'); return; }
+  el('savename').value = '';
+  renderSaves();
+  toast(`已保存「${item.name}」`);
+}
+function importCode(raw){
+  const L = decodeLayout(raw);
+  if (!L){ toast('分享码无法识别，请确认完整复制（应以 E1. 开头）'); return; }
+  applyLayout(L);
+  closeSave();
+  showShareTip(L.nests.length);
+  toast(`已载入分享的布局（${L.nests.length} 个小窝）`);
+}
+/** 打开分享链接后顶部提示条 */
+function showShareTip(n){
+  const box = el('sharetip');
+  box.style.display = 'flex';
+  box.innerHTML = `<span>已载入<b>别人分享的布局</b>（${n} 个小窝）—— 可直接拖动修改，也可以存进自己的存档。</span>
+    <span class="sp">
+      <button class="pri" data-tip="save">保存为我的存档</button>
+      <button data-tip="close">知道了</button>
+    </span>`;
+}
+el('sharetip').addEventListener('click', e => {
+  const b = e.target.closest('[data-tip]'); if (!b) return;
+  el('sharetip').style.display = 'none';
+  if (b.dataset.tip === 'save') openSave(true);
+});
+
+/* ---- 事件绑定 ---- */
+el('open-save').addEventListener('click', () => openSave(false));
+document.querySelectorAll('[data-sclose]').forEach(b => b.addEventListener('click', closeSave));
+el('save-now').addEventListener('click', () => saveCurrent(el('savename').value.trim()));
+el('savename').addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ e.preventDefault(); saveCurrent(el('savename').value.trim()); }
+});
+el('do-import').addEventListener('click', () => importCode(el('importcode').value));
+el('importcode').addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ e.preventDefault(); importCode(el('importcode').value); }
+});
+el('copy-share').addEventListener('click', () => {
+  if (!_shareCode){ toast('还没有可分享的布局'); return; }
+  if (isLocalFile()) copyText(_shareCode, '分享码已复制，让对方用「导入」粘贴', el('shareurl'));
+  else copyText(el('shareurl').value, '链接已复制，发给对方打开即可', el('shareurl'));
+});
+el('slist').addEventListener('click', e => {
+  const b = e.target.closest('[data-sact]'); if (!b) return;
+  const list = readSaves();
+  const it = list.find(s => s.id === b.dataset.sid);
+  if (!it) return;
+  const act = b.dataset.sact;
+  if (act === 'load'){
+    const L = decodeLayout(it.code);
+    if (!L){ toast('这个存档已损坏，无法载入'); return; }
+    applyLayout(L);
+    closeSave();
+    toast(`已载入「${it.name}」`);
+  }
+  if (act === 'share'){
+    syncShareBox(it.code, it.name);
+    if (isLocalFile()) copyText(it.code, '分享码已复制', el('shareurl'));
+    else copyText(buildShareURL(it.code), '链接已复制，发给对方打开即可', el('shareurl'));
+    const bx = el('smodal').querySelector('.sharebox');
+    if (bx && bx.scrollIntoView) bx.scrollIntoView({ block: 'nearest' });
+  }
+  if (act === 'rename'){
+    const nm = prompt('修改存档名称', it.name);
+    if (nm == null) return;
+    it.name = nm.trim().slice(0, 30) || it.name;
+    writeSaves(list); renderSaves();
+  }
+  if (act === 'del'){
+    if (!confirm(`删除存档「${it.name}」？`)) return;
+    writeSaves(list.filter(s => s.id !== it.id));
+    renderSaves();
+    toast('已删除');
+  }
+});
+
+/** 带 #s=… 打开（自己点分享链接 / 手机版外壳透传）→ 直接还原别人的布局 */
+function bootFromHash(){
+  const m = /[#&]s=([^&\s]+)/.exec(String(location.hash || ''));
+  if (!m) return false;
+  const L = decodeLayout(decodeURIComponent(m[1]));
+  if (!L) return false;
+  applyLayout(L);
+  showShareTip(L.nests.length);
+  return true;
+}
+window.addEventListener('hashchange', () => {
+  if (/[#&]s=/.test(String(location.hash || ''))) bootFromHash();
+});
+
+/* ---------- 初始示例：一字并排，公宠居中 ---------- */
+function biggestGroup(){
+  const gPool = {};
+  PETS.filter(canBreed).forEach(p => realGroups(p).forEach(g => { (gPool[g] = gPool[g] || []).push(p); }));
+  let best = null;
+  Object.keys(gPool).forEach(g => { if (!best || gPool[g].length > gPool[best].length) best = +g; });
+  return best;
+}
+
+/* ---------- 「统一蛋组」：随机换组 ---------- */
+let lastSameGid = null;                 // 上一次统一到的蛋组，避免连点两次结果相同
+/**
+ * 可作为「统一蛋组」目标的蛋组：至少 2 只可用精灵，且内部存在公母均可的精灵
+ * （否则清一色仅雌性，紧贴也生不出蛋）。
+ */
+function viableSameGroups(){
+  const byGroup = {};
+  PETS.filter(canBreed).forEach(p => {
+    realGroups(p).forEach(g => { (byGroup[g] = byGroup[g] || []).push(p); });
+  });
+  return Object.keys(byGroup).map(Number)
+    .filter(g => byGroup[g].length >= 2 && byGroup[g].some(p => sexAvail(p) === 'MF'))
+    .sort((a, b) => a - b);
+}
+/**
+ * 把画布上所有小窝统一到指定蛋组，返回该蛋组可用精灵数。
+ * 按相邻关系做二分染色，让每个紧贴组天然形成「一公一母」
+ * （奇数环会遗留一组冲突，属规则必然）；精灵顺序打散，连点两次不会完全相同。
+ */
+function fillSameGroup(gid){
+  const pool = PETS.filter(p => canBreed(p) && realGroups(p).includes(gid));
+  if (!pool.length || !state.nests.length) return 0;
+  const shuffled = pool.slice();
+  for (let i = shuffled.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const mPool = shuffled.filter(p => sexAvail(p) === 'MF');     // 能当雄性的精灵
+
+  const ns = state.nests.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  const adj = ns.map(() => []);
+  for (let i = 0; i < ns.length; i++){
+    for (let j = i + 1; j < ns.length; j++){
+      if (adjacent(ns[i], ns[j])){ adj[i].push(j); adj[j].push(i); }
+    }
+  }
+  const color = new Array(ns.length).fill(null);
+  for (let s = 0; s < ns.length; s++){
+    if (color[s]) continue;
+    color[s] = 'F';
+    const queue = [s];
+    while (queue.length){
+      const u = queue.shift();
+      adj[u].forEach(v => { if (!color[v]){ color[v] = (color[u] === 'F') ? 'M' : 'F'; queue.push(v); } });
+    }
+  }
+  let mi = 0;
+  const map = {};
+  ns.forEach((n, i) => {
+    // 需要当雄性的窝只从"公母均可"的精灵里挑，其余随便挑（仅雌性会被钳制成 F）
+    const wantMale = color[i] === 'M';
+    const p = (wantMale && mPool.length) ? mPool[mi++ % mPool.length] : shuffled[i % shuffled.length];
+    map[n.id] = { petId: p.id, sex: color[i] };
+  });
+  state.nests = state.nests.map(n => {
+    const m = map[n.id] || {};
+    const s = { ...n, petId: m.petId, sex: m.sex, shiny: false };
+    clampSex(s);
+    return s;
+  });
+  renderAll();
+  return pool.length;
+}
+
+(function boot(){
+  if (bootFromHash()) return;          // URL 带分享码 → 直接还原别人分享的布局
+  const pool = PETS.filter(canBreed);  // 默认示例：只用可生蛋精灵
+  const gid = biggestGroup();
+  const cand = pool.filter(p => realGroups(p).includes(gid));
+  const male = cand.find(p => sexAvail(p) === 'MF' && p.stage === 1) || cand.find(p => sexAvail(p) === 'MF') || defaultPet(pool);
+  const femCand = cand.filter(p => p.id !== male.id && sexAvail(p) !== '' && p.stage === 1);
+  const f1 = femCand[0] || cand.find(p => p.id !== male.id && sexAvail(p) !== '') || male;
+  const f2 = femCand[1] || cand.find(p => p.id !== male.id && p.id !== f1.id && sexAvail(p) !== '') || f1;
+
+  // 一字并排：母 · 公 · 母 —— 公宠居中可同时形成两组有效配对
+  const cx = Math.floor(state.cols / 2), cy = Math.floor(state.rows / 2);
+  addNest(cx - 1, cy, f1.id, 'F');
+  const mid = addNest(cx, cy, male.id, 'M');
+  addNest(cx + 1, cy, f2.id, 'F');
+  state.selected = mid ? mid.id : null;
+  if (mid) setRecBase(mid);
+  renderAll();
+})();
+</script>
+</body>
+</html>

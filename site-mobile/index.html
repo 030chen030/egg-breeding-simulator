@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<meta name="format-detection" content="telephone=no">
+<title>洛克王国世界 · 孵蛋模拟器（手机版）</title>
+<!--
+  手机端专用外壳：用 390px 宽的 iframe 承载主程序（app.html）。
+  · 手机打开：iframe 铺满整屏，体验与直接打开完全一致（页面本身也是响应式的）。
+  · 电脑打开：居中一个手机宽度的框，看到的始终是手机布局，不会窜到桌面版式。
+-->
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(920px 470px at 6% -8%, rgba(79,70,229,.055) 0%, rgba(79,70,229,0) 62%),
+      radial-gradient(780px 430px at 100% -6%, rgba(59,130,246,.045) 0%, rgba(59,130,246,0) 58%),
+      #f6f7f9;
+    color:#1a1e28;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:11px;padding:16px;
+  }
+  .mhead{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:center}
+  .mhead .ttl{font-size:13.5px;font-weight:650;color:#1a1e28}
+  .mhead .badge{font-size:11px;font-weight:650;color:#3f36cc;background:#eef0fe;border:1px solid #c9cdfb;border-radius:999px;padding:2px 9px}
+  .mhead .sw{font-size:11.5px;color:#5b6272;text-decoration:none;border:1px solid #d5d9e2;background:#fff;border-radius:999px;padding:3px 10px}
+  .mhead .sw:hover{border-color:#4f46e5;color:#3f36cc}
+  .phone{
+    width:390px;height:min(844px, calc(100vh - 108px));
+    background:#fff;border:1px solid #e2e4ea;border-radius:30px;overflow:hidden;position:relative;
+    box-shadow:0 2px 6px rgba(16,24,40,.06), 0 34px 70px -30px rgba(16,24,40,.4);
+  }
+  .phone iframe{width:100%;height:100%;border:0;display:block;background:#fff}
+  .mtip{margin:0;font-size:11.5px;color:#8a90a6;line-height:1.7;text-align:center;max-width:440px}
+  /* 手机上：整屏铺满，不显示外壳说明，等同于直接打开模拟器 */
+  @media (max-width:520px){
+    body{padding:0;gap:0;justify-content:flex-start;background:#fff}
+    .mhead,.mtip{display:none}
+    .phone{width:100%;height:100vh;height:100dvh;border:0;border-radius:0;box-shadow:none}
+  }
+</style>
+<script>
+/* 手机端不进 iframe 外壳：移动端 iframe 内部的滚动始终比顶层文档滞手，
+   而外壳的唯一作用是"电脑上把页面锁成手机宽度"。所以手机上直接跳到
+   app.html（它本身就是响应式的），滚动、下拉都发生在顶层文档里，最顺滑。
+   注意：本脚本要在 <head> 里同步执行，避免先画一次外壳再跳转的闪白。 */
+(function(){
+  /* sharecode 是平台访问码（v14 起必带）：跳转 / iframe 都必须透传 ?sharecode=…，
+     否则 app.html 裸链会被网关 403「链接不完整」 */
+  var QS = window.location.search || '';
+  if (window.innerWidth <= 520){
+    window.location.replace('app.html' + QS + (window.location.hash || ''));
+  }
+})();
+</script>
+</head>
+<body>
+  <div class="mhead">
+    <span class="ttl">洛克王国世界 · 孵蛋模拟器</span>
+    <span class="badge">手机版</span>
+    <a class="sw" href="https://egg-breeding-simulator.app.workbuddy.link/?sharecode=4AJ6XLOWU4" target="_blank" rel="noopener">切换到电脑版 ↗</a>
+  </div>
+  <div class="phone">
+    <iframe id="app" title="洛克王国世界 · 孵蛋模拟器（手机版）" allow="clipboard-write"></iframe>
+  </div>
+  <p class="mtip">本页面按手机屏幕宽度渲染，手机上打开即为全屏；电脑上打开会固定为手机宽度，方便核对移动端效果。</p>
+<script>
+/* 分享链接形如 index.html?sharecode=…#s=E1.…  —— 把 search（含 sharecode 访问码）
+   与 hash 一起透传给 iframe 内的主程序；iframe 的 src 必须带码，裸链会被 403。
+   iframe 不写死初始 src，统一由这里的 sync() 设置，避免先 403 一次再重载。 */
+(function(){
+  var f = document.getElementById('app');
+  if (!f) return;
+  var QS = window.location.search || '';
+  function sync(){
+    var h = window.location.hash || '';
+    var url = 'app.html' + QS + h;
+    if (f.getAttribute('src') !== url) f.setAttribute('src', url);
+  }
+  sync();
+  window.addEventListener('hashchange', sync);
+})();
+</script>
+</body>
+</html>

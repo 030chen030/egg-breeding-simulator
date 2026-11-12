@@ -1,0 +1,638 @@
+[
+ {
+  "id": "pet_000705",
+  "no": "245",
+  "name": "琉璃君主",
+  "title": "琉璃君主",
+  "form": "首领形态",
+  "stage": 4,
+  "cls": "萌萌类精灵",
+  "types": [
+   "水系",
+   "毒系"
+  ],
+  "g": [
+   13,
+   10
+  ],
+  "head": "PetAvatar_4094.png",
+  "shiny_head": "",
+  "has_shiny": false,
+  "can_ride": true,
+  "evolution_id": "dc5e_31bc8506351842",
+  "game_id": 5066
+ },
+ {
+  "id": "pet_000706",
+  "no": "254",
+  "name": "圣冠布鲁斯",
+  "title": "圣冠布鲁斯",
+  "form": "首领形态",
+  "stage": 4,
+  "cls": "自然类精灵",
+  "types": [
+   "冰系"
+  ],
+  "g": [
+   13,
+   10
+  ],
+  "head": "PetAvatar_4110.png",
+  "shiny_head": "",
+  "has_shiny": false,
+  "can_ride": true,
+  "evolution_id": "dc5e_98ec5af7fd2283",
+  "game_id": 5067
+ },
+ {
+  "id": "pet_000638",
+  "no": "469",
+  "name": "小冥龙",
+  "title": "小冥龙",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "幽系",
+   "龙系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3797.png",
+  "shiny_head": "",
+  "has_shiny": false,
+  "can_ride": true,
+  "evolution_id": "dc5e_85b1512625efd1",
+  "game_id": 3797
+ },
+ {
+  "id": "pet_000639",
+  "no": "470",
+  "name": "冥古龙",
+  "title": "冥古龙",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "幽系",
+   "龙系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3798.png",
+  "shiny_head": "",
+  "has_shiny": false,
+  "can_ride": true,
+  "evolution_id": "dc5e_85b1512625efd1",
+  "game_id": 3798
+ },
+ {
+  "id": "pet_000640",
+  "no": "471",
+  "name": "地银链",
+  "title": "地银链",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "地系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3799.png",
+  "shiny_head": "PetAvatar_3799_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_6c81f5c70d9044",
+  "game_id": 3799
+ },
+ {
+  "id": "pet_000641",
+  "no": "472",
+  "name": "地底银鳞",
+  "title": "地底银鳞",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "地系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3800.png",
+  "shiny_head": "PetAvatar_3800_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_6c81f5c70d9044",
+  "game_id": 3800
+ },
+ {
+  "id": "pet_000642",
+  "no": "473",
+  "name": "地绡银龙",
+  "title": "地绡银龙",
+  "form": "",
+  "stage": 3,
+  "cls": "自然类精灵",
+  "types": [
+   "地系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3801.png",
+  "shiny_head": "PetAvatar_3801_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_6c81f5c70d9044",
+  "game_id": 3801
+ },
+ {
+  "id": "pet_000643",
+  "no": "474",
+  "name": "沉金兽",
+  "title": "沉金兽",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "电系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3802.png",
+  "shiny_head": "PetAvatar_3802_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_d92e4fbb814ad4",
+  "game_id": 3802
+ },
+ {
+  "id": "pet_000644",
+  "no": "475",
+  "name": "龙头金",
+  "title": "龙头金",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "电系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3803.png",
+  "shiny_head": "PetAvatar_3803_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_d92e4fbb814ad4",
+  "game_id": 3803
+ },
+ {
+  "id": "pet_000645",
+  "no": "476",
+  "name": "龙嵴金脉",
+  "title": "龙嵴金脉",
+  "form": "",
+  "stage": 3,
+  "cls": "自然类精灵",
+  "types": [
+   "电系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3804.png",
+  "shiny_head": "PetAvatar_3804_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_d92e4fbb814ad4",
+  "game_id": 3804
+ },
+ {
+  "id": "pet_000646",
+  "no": "477",
+  "name": "乐乐鲨",
+  "title": "乐乐鲨",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "水系"
+  ],
+  "g": [
+   13
+  ],
+  "head": "PetAvatar_3805.png",
+  "shiny_head": "PetAvatar_3805_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_9550958f4bf948",
+  "game_id": 3805
+ },
+ {
+  "id": "pet_000647",
+  "no": "478",
+  "name": "阿瓦鲨",
+  "title": "阿瓦鲨（柠檬鲨的样子）",
+  "form": "柠檬鲨的样子",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "水系"
+  ],
+  "g": [
+   13
+  ],
+  "head": "PetAvatar_3806.png",
+  "shiny_head": "PetAvatar_3806_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_744e21f436cf82",
+  "game_id": 3806
+ },
+ {
+  "id": "pet_000648",
+  "no": "478",
+  "name": "阿瓦鲨",
+  "title": "阿瓦鲨（虎纹鲨的样子）",
+  "form": "虎纹鲨的样子",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "水系"
+  ],
+  "g": [
+   13
+  ],
+  "head": "PetAvatar_3807.png",
+  "shiny_head": "PetAvatar_3807_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_8106f92a8d96e6",
+  "game_id": 3807
+ },
+ {
+  "id": "pet_000649",
+  "no": "479",
+  "name": "蛋包蛋",
+  "title": "蛋包蛋",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "普通系",
+   "萌系"
+  ],
+  "g": [
+   6,
+   5
+  ],
+  "head": "PetAvatar_3808.png",
+  "shiny_head": "PetAvatar_3808_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_0047aa720c2960",
+  "game_id": 3808
+ },
+ {
+  "id": "pet_000650",
+  "no": "480",
+  "name": "鸡麻麻",
+  "title": "鸡麻麻",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "普通系",
+   "萌系"
+  ],
+  "g": [
+   6,
+   5
+  ],
+  "head": "PetAvatar_3809.png",
+  "shiny_head": "PetAvatar_3809_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_0047aa720c2960",
+  "game_id": 3809
+ },
+ {
+  "id": "pet_000651",
+  "no": "481",
+  "name": "蟹蟹椰",
+  "title": "蟹蟹椰",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "水系",
+   "草系"
+  ],
+  "g": [
+   7,
+   3
+  ],
+  "head": "PetAvatar_3810.png",
+  "shiny_head": "PetAvatar_3810_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_fcd6f3acd80b87",
+  "game_id": 3810
+ },
+ {
+  "id": "pet_000652",
+  "no": "482",
+  "name": "沙咔蟹",
+  "title": "沙咔蟹",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "水系",
+   "草系"
+  ],
+  "g": [
+   7,
+   3
+  ],
+  "head": "PetAvatar_3811.png",
+  "shiny_head": "PetAvatar_3811_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_fcd6f3acd80b87",
+  "game_id": 3811
+ },
+ {
+  "id": "pet_000653",
+  "no": "483",
+  "name": "鲸羽",
+  "title": "鲸羽",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "幻系",
+   "冰系"
+  ],
+  "g": [
+   13,
+   7
+  ],
+  "head": "PetAvatar_3812.png",
+  "shiny_head": "PetAvatar_3812_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_60db7dce6beee5",
+  "game_id": 3812
+ },
+ {
+  "id": "pet_000654",
+  "no": "484",
+  "name": "圆环鲸羽",
+  "title": "圆环鲸羽",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "幻系",
+   "冰系"
+  ],
+  "g": [
+   13,
+   7
+  ],
+  "head": "PetAvatar_3813.png",
+  "shiny_head": "PetAvatar_3813_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_60db7dce6beee5",
+  "game_id": 3813
+ },
+ {
+  "id": "pet_000655",
+  "no": "485",
+  "name": "豆粒鹅",
+  "title": "豆粒鹅",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "冰系"
+  ],
+  "g": [
+   6,
+   5
+  ],
+  "head": "PetAvatar_3814.png",
+  "shiny_head": "PetAvatar_3814_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_e8c9bdd058f20a",
+  "game_id": 3814
+ },
+ {
+  "id": "pet_000656",
+  "no": "486",
+  "name": "刨雪鹅",
+  "title": "刨雪鹅",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "冰系"
+  ],
+  "g": [
+   6,
+   5
+  ],
+  "head": "PetAvatar_3815.png",
+  "shiny_head": "PetAvatar_3815_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_e8c9bdd058f20a",
+  "game_id": 3815
+ },
+ {
+  "id": "pet_000657",
+  "no": "487",
+  "name": "西瓜虫",
+  "title": "西瓜虫",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "虫系",
+   "草系"
+  ],
+  "g": [
+   4,
+   8
+  ],
+  "head": "PetAvatar_3816.png",
+  "shiny_head": "PetAvatar_3816_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_7bede4dbd340d7",
+  "game_id": 3816
+ },
+ {
+  "id": "pet_000658",
+  "no": "488",
+  "name": "冬虫夏瓜",
+  "title": "冬虫夏瓜",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "虫系",
+   "草系"
+  ],
+  "g": [
+   4,
+   8
+  ],
+  "head": "PetAvatar_3817.png",
+  "shiny_head": "PetAvatar_3817_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_7bede4dbd340d7",
+  "game_id": 3817
+ },
+ {
+  "id": "pet_000659",
+  "no": "489",
+  "name": "小剪影",
+  "title": "小剪影",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "幽系"
+  ],
+  "g": [
+   7,
+   12
+  ],
+  "head": "PetAvatar_3818.png",
+  "shiny_head": "PetAvatar_3818_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_8350f9c12309f6",
+  "game_id": 3818
+ },
+ {
+  "id": "pet_000660",
+  "no": "490",
+  "name": "影子剪纸",
+  "title": "影子剪纸",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "幽系"
+  ],
+  "g": [
+   7,
+   12
+  ],
+  "head": "PetAvatar_3819.png",
+  "shiny_head": "PetAvatar_3819_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_8350f9c12309f6",
+  "game_id": 3819
+ },
+ {
+  "id": "pet_000661",
+  "no": "491",
+  "name": "滴溜豚",
+  "title": "滴溜豚",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "毒系",
+   "幻系"
+  ],
+  "g": [
+   13
+  ],
+  "head": "PetAvatar_3820.png",
+  "shiny_head": "PetAvatar_3820_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_358574fd0eaab8",
+  "game_id": 3820
+ },
+ {
+  "id": "pet_000662",
+  "no": "492",
+  "name": "滴廿豚",
+  "title": "滴廿豚",
+  "form": "",
+  "stage": 2,
+  "cls": "自然类精灵",
+  "types": [
+   "毒系",
+   "幻系"
+  ],
+  "g": [
+   13
+  ],
+  "head": "PetAvatar_3821.png",
+  "shiny_head": "PetAvatar_3821_1.png",
+  "has_shiny": true,
+  "can_ride": true,
+  "evolution_id": "dc5e_358574fd0eaab8",
+  "game_id": 3821
+ },
+ {
+  "id": "pet_000714",
+  "no": "493",
+  "name": "超能阿布",
+  "title": "超能阿布",
+  "form": "首领形态",
+  "stage": 4,
+  "cls": "自然类精灵",
+  "types": [
+   "龙系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3169.png",
+  "shiny_head": "",
+  "has_shiny": false,
+  "can_ride": true,
+  "evolution_id": "dc5e_532e761b925779",
+  "game_id": 5068
+ },
+ {
+  "id": "pet_000710",
+  "no": "493",
+  "name": "阿布",
+  "title": "阿布",
+  "form": "",
+  "stage": 1,
+  "cls": "自然类精灵",
+  "types": [
+   "龙系"
+  ],
+  "g": [
+   1
+  ],
+  "head": "PetAvatar_3168.png",
+  "shiny_head": "",
+  "has_shiny": false,
+  "can_ride": true,
+  "evolution_id": "dc5e_532e761b925779",
+  "game_id": 3168
+ }
+]

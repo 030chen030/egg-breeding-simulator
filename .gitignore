@@ -1,0 +1,33 @@
+# WorkBuddy 本地记忆与平台应用标记（含个人信息，禁止上传）
+.workbuddy/
+.wbapp_*.genie
+
+# 体积大且可再生的本地产物
+_shots/
+_icons_cache/
+*.zip
+
+# 一次性调试页面与数据备份
+src/_live*.html
+_pets_backup*.json
+_season_backup*.json
+_*_raw.json
+_balls.json
+_s5_page.json
+_s5_html.json
+_s5_tujian.json
+_s5_ver.json
+_s5_petsdata.json
+_s5_mod.json
+_s5_pet1.json
+_s5_pet1h.json
+_s5_tpl.json
+_s5_tpl.lua
+_s5_module.lua
+
+# Python / Node
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+Thumbs.db
